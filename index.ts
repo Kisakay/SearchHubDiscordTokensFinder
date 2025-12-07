@@ -24,7 +24,7 @@ const client = new Client({
     ]
 });
 
-const selfbot = new SelfBotClient()
+const selfbot = new SelfBotClient();
 
 const TOKEN: string = process.env.TOKEN!;
 const GUILD_ID: string = process.env.GUILD_ID!;
@@ -41,425 +41,425 @@ interface SearchHubMessage {
 }
 
 interface ProgressData {
-    currentChunkIndex: number;
-    currentDepth: number;
-    currentGroupPath: string;
     channelId: string | null;
-    membersToAnalyze: string[]; // IDs des membres
-    analyzedMembers: string[]; // IDs des membres déjà analysés
-    foundLoggers: string[]; // IDs des loggers trouvés
-    activeRoles: string[]; // IDs des rôles actifs
+    currentMainGroup: number;
+    foundLoggers: string[];
     startTime: string;
     lastUpdate: string;
 }
 
-// Fonction pour sauvegarder la progression
-function saveProgress(data: ProgressData): void {
-    try {
-        fs.writeFileSync(PROGRESS_FILE, JSON.stringify(data, null, 2), 'utf-8');
-        console.log(`[SAVE] Progression sauvegardée: chunk ${data.currentChunkIndex}, depth ${data.currentDepth}`);
-    } catch (error) {
-        console.error('[SAVE ERROR] Erreur lors de la sauvegarde:', error);
-    }
-}
+// ========== UTILITAIRES ==========
 
-// Fonction pour charger la progression
-function loadProgress(): ProgressData | null {
-    try {
-        if (fs.existsSync(PROGRESS_FILE)) {
-            const data = fs.readFileSync(PROGRESS_FILE, 'utf-8');
-            const progress = JSON.parse(data) as ProgressData;
-            console.log(`[LOAD] Progression chargée: chunk ${progress.currentChunkIndex}, depth ${progress.currentDepth}`);
-            return progress;
-        }
-    } catch (error) {
-        console.error('[LOAD ERROR] Erreur lors du chargement:', error);
-    }
-    return null;
-}
-
-// Fonction pour supprimer le fichier de progression
-function clearProgress(): void {
-    try {
-        if (fs.existsSync(PROGRESS_FILE)) {
-            fs.unlinkSync(PROGRESS_FILE);
-            console.log('[CLEAR] Fichier de progression supprimé');
-        }
-    } catch (error) {
-        console.error('[CLEAR ERROR] Erreur lors de la suppression:', error);
-    }
-}
-
-// Fonction pour nettoyer les rôles orphelins
-async function cleanupOrphanRoles(guild: Guild, roleIds: string[]): Promise<void> {
-    console.log(`[CLEANUP] Nettoyage de ${roleIds.length} rôles orphelins...`);
-    for (const roleId of roleIds) {
-        try {
-            const role = await guild.roles.fetch(roleId);
-            if (role) {
-                await role.delete();
-                console.log(`[CLEANUP] Rôle ${role.name} supprimé`);
-            }
-        } catch (error) {
-            console.error(`[CLEANUP ERROR] Erreur lors de la suppression du rôle ${roleId}:`, error);
-        }
-    }
-}
-
-// Fonction pour générer un code aléatoire
 function generateRandomCode(): string {
     return Math.random().toString(36).substring(2, 15);
 }
 
-// Fonction pour attendre
 function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Fonction pour créer les chunks de membres
-function chunkMembers(members: GuildMember[], chunkSize: number): GuildMember[][] {
+function saveProgress(data: ProgressData): void {
+    try {
+        fs.writeFileSync(PROGRESS_FILE, JSON.stringify(data, null, 2), 'utf-8');
+        console.log(`[SAVE] Progression sauvegardée`);
+    } catch (error) {
+        console.error('[SAVE ERROR]', error);
+    }
+}
+
+function loadProgress(): ProgressData | null {
+    try {
+        if (fs.existsSync(PROGRESS_FILE)) {
+            const data = fs.readFileSync(PROGRESS_FILE, 'utf-8');
+            return JSON.parse(data) as ProgressData;
+        }
+    } catch (error) {
+        console.error('[LOAD ERROR]', error);
+    }
+    return null;
+}
+
+function clearProgress(): void {
+    try {
+        if (fs.existsSync(PROGRESS_FILE)) {
+            fs.unlinkSync(PROGRESS_FILE);
+            console.log('[CLEAR] Progression effacée');
+        }
+    } catch (error) {
+        console.error('[CLEAR ERROR]', error);
+    }
+}
+
+// ========== CRÉATION DES CHUNKS ==========
+
+function createChunks(members: GuildMember[], groupSize: number): GuildMember[][] {
     const chunks: GuildMember[][] = [];
-    for (let i = 0; i < members.length; i += chunkSize) {
-        chunks.push(members.slice(i, i + chunkSize));
+    for (let i = 0; i < members.length; i += groupSize) {
+        chunks.push(members.slice(i, i + groupSize));
     }
     return chunks;
 }
 
-// Fonction pour vérifier si le message apparaît dans SearchHub
-async function checkSearchHub(userId: string, messageContent: string): Promise<boolean> {
+// ========== VÉRIFICATION SEARCHHUB (1 SEULE REQUÊTE) ==========
+
+async function checkMessageInSearchHub(selfbotUserId: string, testCode: string): Promise<boolean> {
     try {
-        const data: SearchHubMessage[] | unknown = await searchDiscord(userId);
+        console.log(`    🔍 Vérification SearchHub pour le selfbot...`);
+        const data = await searchDiscord(selfbotUserId);
 
         if (Array.isArray(data)) {
-            return data.some((item: SearchHubMessage) =>
-                item.content && item.content.includes(messageContent)
+            const found = data.some((msg: SearchHubMessage) =>
+                msg.content && msg.content.includes(testCode)
             );
+            console.log(`    ${found ? '✅' : '❌'} Message ${found ? 'trouvé' : 'non trouvé'} dans SearchHub`);
+            return found;
         }
+        console.log(`    ❌ Réponse SearchHub invalide`);
         return false;
     } catch (error) {
-        console.error('Erreur lors de la vérification SearchHub:', error);
+        console.error(`    ❌ Erreur SearchHub:`, error);
         return false;
     }
 }
 
-// Fonction récursive pour trouver le logger (avec sauvegarde)
-async function findLogger(
+// ========== DÉTECTION RÉCURSIVE PAR DICHOTOMIE ==========
+
+async function detectLoggerInGroup(
     guild: Guild,
     channel: TextChannel,
     members: GuildMember[],
-    groupNumber: string | number,
-    depth: number = 0,
-    progress: ProgressData
+    groupName: string,
+    selfbotUserId: string,
+    depth: number = 0
 ): Promise<GuildMember | null> {
-    console.log(`[Depth ${depth}] Analyse du groupe ${groupNumber} avec ${members.length} membres`);
+    const indent = '  '.repeat(depth);
+    console.log(`\n${indent}[Depth ${depth}] 🔍 Analyse ${groupName} - ${members.length} membre(s)`);
 
+    // Cas de base: 0 membre
     if (members.length === 0) {
-        console.log('Aucun membre à analyser');
+        console.log(`${indent}⚠️  Aucun membre à analyser`);
         return null;
     }
 
-    // Si un seul membre, c'est le logger
+    // Cas de base: 1 membre trouvé = c'est le logger !
     if (members.length === 1) {
-        console.log(`Logger trouvé: ${members[0]?.user.tag} (${members[0]?.id})`);
-        progress.foundLoggers.push(members[0]!.id);
-        saveProgress(progress);
+        console.log(`${indent}🎯 LOGGER IDENTIFIÉ: ${members[0]!.user.tag} (${members[0]!.id})`);
         return members[0]!;
     }
 
     // Créer un rôle temporaire pour ce groupe
-    const roleName: string = `TestGroup_${groupNumber}_${depth}_${Date.now()}`;
-    const role: Role = await guild.roles.create({
-        name: roleName,
-        permissions: []
-    });
-
-    console.log(`Rôle créé: ${roleName}`);
-    progress.activeRoles.push(role.id);
-    progress.currentDepth = depth;
-    progress.currentGroupPath = String(groupNumber);
-    saveProgress(progress);
+    const roleName = `Test_${groupName}_${Date.now()}`;
+    let role: Role;
+    
+    try {
+        role = await guild.roles.create({
+            name: roleName,
+            permissions: []
+        });
+        console.log(`${indent}📝 Rôle créé: ${roleName}`);
+    } catch (error) {
+        console.error(`${indent}❌ Erreur création rôle:`, error);
+        return null;
+    }
 
     // Assigner le rôle à tous les membres du groupe
+    console.log(`${indent}👥 Attribution du rôle aux ${members.length} membres...`);
     for (const member of members) {
         try {
             await member.roles.add(role);
         } catch (error) {
-            console.error(`Erreur lors de l'ajout du rôle à ${member.user.tag}:`, error);
+            console.error(`${indent}⚠️  Erreur ajout rôle à ${member.user.tag}`);
         }
     }
 
     await sleep(1000);
 
-    // Donner la permission de voir le canal au rôle
-    await channel.permissionOverwrites.edit(role, {
-        ViewChannel: true,
-        ReadMessageHistory: true
-    });
+    // Donner la permission de voir le canal
+    try {
+        await channel.permissionOverwrites.edit(role, {
+            ViewChannel: true,
+            ReadMessageHistory: true
+        });
+        console.log(`${indent}✅ Permission accordée au rôle`);
+    } catch (error) {
+        console.error(`${indent}❌ Erreur permission:`, error);
+        await role.delete();
+        return null;
+    }
 
     await sleep(1000);
 
     // Générer et envoyer le message de test
-    const testCode: string = generateRandomCode();
-    const testMessage: string = `Hello world for group ${groupNumber} depth ${depth} - ${testCode}`;
+    const testCode = generateRandomCode();
+    const testMessage = `Hello world for ${groupName} group ${testCode}`;
+    console.log(`${indent}📤 Message: "${testMessage}"`);
 
-    console.log(`Envoi du message de test: ${testMessage}`);
-    let selfbotChannel = await selfbot.channels.fetch(channel.id).catch(() => null)
-
-    await (selfbotChannel as TextBasedChannel)?.send(testMessage);
-
-    // Attendre 5 secondes
-    await sleep(5000);
-
-    // Retirer la permission de voir le canal
-    await channel.permissionOverwrites.edit(role, {
-        ViewChannel: false
-    });
-
-    console.log('Permission retirée, vérification sur SearchHub...');
-
-    // Vérifier sur SearchHub pour chaque membre
-    const foundMembers: GuildMember[] = [];
-    for (const member of members) {
-        const isLogger: boolean = await checkSearchHub(member.id, testCode);
-        if (isLogger) {
-            console.log(`✓ Le message apparaît pour ${member.user.tag}`);
-            foundMembers.push(member);
+    try {
+        const selfbotChannel = await selfbot.channels.fetch(channel.id).catch(() => null);
+        if (!selfbotChannel) {
+            console.error(`${indent}❌ Canal non accessible par le selfbot`);
+            await role.delete();
+            return null;
         }
-        progress.analyzedMembers.push(member.id);
-        saveProgress(progress);
-        await sleep(500);
+        await (selfbotChannel as TextBasedChannel).send(testMessage);
+    } catch (error) {
+        console.error(`${indent}❌ Erreur envoi message:`, error);
+        await role.delete();
+        return null;
     }
 
+    // Attendre 5 secondes
+    console.log(`${indent}⏳ Attente de 5 secondes...`);
+    await sleep(5000);
+
+    // Retirer la permission
+    try {
+        await channel.permissionOverwrites.edit(role, {
+            ViewChannel: false
+        });
+        console.log(`${indent}🔒 Permission retirée`);
+    } catch (error) {
+        console.error(`${indent}⚠️  Erreur retrait permission:`, error);
+    }
+
+    // Vérifier UNE SEULE FOIS sur SearchHub (compte du selfbot)
+    const messageIsLogged = await checkMessageInSearchHub(selfbotUserId, testCode);
+
     // Nettoyer le rôle
+    console.log(`${indent}🧹 Nettoyage du rôle...`);
     for (const member of members) {
         try {
             await member.roles.remove(role);
         } catch (error) {
-            console.error(`Erreur lors du retrait du rôle de ${member.user.tag}:`, error);
+            // Ignore les erreurs silencieuses
         }
     }
-    await role.delete();
-    progress.activeRoles = progress.activeRoles.filter(id => id !== role.id);
-    console.log(`Rôle ${roleName} supprimé`);
-    saveProgress(progress);
-
-    // Si des loggers trouvés, subdiviser récursivement
-    if (foundMembers.length > 0) {
-        if (foundMembers.length === 1) {
-            progress.foundLoggers.push(foundMembers[0]!.id);
-            saveProgress(progress);
-            return foundMembers[0]!;
-        }
-
-        // Subdiviser en 2 groupes
-        const midPoint: number = Math.ceil(foundMembers.length / 2);
-        const chunk1: GuildMember[] = foundMembers.slice(0, midPoint);
-        const chunk2: GuildMember[] = foundMembers.slice(midPoint);
-
-        console.log(`Subdivision en 2 groupes: ${chunk1.length} et ${chunk2.length} membres`);
-
-        // Chercher dans le premier chunk
-        let logger: GuildMember | null = await findLogger(guild, channel, chunk1, `${groupNumber}_1`, depth + 1, progress);
-        if (logger) return logger;
-
-        // Chercher dans le second chunk
-        logger = await findLogger(guild, channel, chunk2, `${groupNumber}_2`, depth + 1, progress);
-        if (logger) return logger;
+    
+    try {
+        await role.delete();
+    } catch (error) {
+        console.error(`${indent}⚠️  Erreur suppression rôle`);
     }
+
+    // Si le message n'est PAS loggé, aucun logger dans ce groupe
+    if (!messageIsLogged) {
+        console.log(`${indent}✅ Aucun logger dans ce groupe`);
+        return null;
+    }
+
+    // Si le message EST loggé et qu'on a 1 seul membre, c'est lui
+    if (members.length === 1) {
+        console.log(`${indent}🎯 LOGGER CONFIRMÉ: ${members[0]!.user.tag}`);
+        return members[0]!;
+    }
+
+    // Sinon, subdiviser en 2 groupes et chercher récursivement
+    const midPoint = Math.ceil(members.length / 2);
+    const chunk1 = members.slice(0, midPoint);
+    const chunk2 = members.slice(midPoint);
+
+    console.log(`${indent}📊 Subdivision: Groupe A (${chunk1.length}) | Groupe B (${chunk2.length})`);
+
+    // Chercher dans le premier chunk
+    console.log(`${indent}➡️  Test du sous-groupe A...`);
+    let logger = await detectLoggerInGroup(guild, channel, chunk1, `${groupName}_A`, selfbotUserId, depth + 1);
+    if (logger) return logger;
+
+    // Chercher dans le second chunk
+    console.log(`${indent}➡️  Test du sous-groupe B...`);
+    logger = await detectLoggerInGroup(guild, channel, chunk2, `${groupName}_B`, selfbotUserId, depth + 1);
+    if (logger) return logger;
 
     return null;
 }
 
-// Fonction principale
+// ========== FONCTION PRINCIPALE ==========
+
 async function detectLoggers(): Promise<void> {
     try {
         const guild: Guild = await client.guilds.fetch(GUILD_ID);
-        console.log(`Connecté au serveur: ${guild.name}`);
+        console.log(`\n🔗 Connecté au serveur: ${guild.name}`);
 
-        // Vérifier si une progression existe
+        // ID du selfbot (nécessaire pour vérifier SearchHub)
+        const selfbotUserId = selfbot.user?.id;
+        if (!selfbotUserId) {
+            console.error('❌ Impossible de récupérer l\'ID du selfbot');
+            return;
+        }
+        console.log(`👤 Selfbot ID: ${selfbotUserId}`);
+
+        // Charger la progression
         let progress = loadProgress();
         let channel: TextChannel;
-        let chunks: GuildMember[][];
-        let startChunkIndex = 0;
+        let startGroupIndex = 0;
 
-        if (progress) {
-            console.log('\n🔄 REPRISE DE LA DÉTECTION EN COURS...');
-            console.log(`Dernière mise à jour: ${progress.lastUpdate}`);
-            console.log(`Chunk: ${progress.currentChunkIndex}, Depth: ${progress.currentDepth}`);
-            console.log(`Loggers trouvés: ${progress.foundLoggers.length}`);
-            
-            // Nettoyer les rôles orphelins
-            if (progress.activeRoles.length > 0) {
-                await cleanupOrphanRoles(guild, progress.activeRoles);
-                progress.activeRoles = [];
-            }
-
-            // Récupérer ou recréer le canal
-            if (progress.channelId) {
-                try {
-                    channel = await guild.channels.fetch(progress.channelId) as TextChannel;
-                    console.log(`Canal existant récupéré: ${channel.name}`);
-                } catch {
-                    console.log('Canal non trouvé, création d\'un nouveau...');
-                    channel = await guild.channels.create({
-                        name: 'searchhub-detection',
-                        permissionOverwrites: [
-                            {
-                                id: guild.id,
-                                deny: [PermissionFlagsBits.ViewChannel]
-                            },
-                            {
-                                id: client.user!.id,
-                                allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-                            }
-                        ]
-                    }) as TextChannel;
-                    progress.channelId = channel.id;
-                }
-            } else {
-                channel = await guild.channels.create({
-                    name: 'searchhub-detection',
-                    permissionOverwrites: [
-                        {
-                            id: guild.id,
-                            deny: [PermissionFlagsBits.ViewChannel]
-                        },
-                        {
-                            id: client.user!.id,
-                            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-                        }
-                    ]
-                }) as TextChannel;
+        if (progress && progress.channelId) {
+            console.log('🔄 Reprise de la détection...');
+            try {
+                channel = await guild.channels.fetch(progress.channelId) as TextChannel;
+                startGroupIndex = progress.currentMainGroup;
+                console.log(`📍 Reprise au groupe ${startGroupIndex + 1}`);
+            } catch {
+                console.log('⚠️  Canal non trouvé, création d\'un nouveau...');
+                channel = await createDetectionChannel(guild);
                 progress.channelId = channel.id;
             }
-
-            startChunkIndex = progress.currentChunkIndex;
-
-            // Récupérer tous les membres
-            await guild.members.fetch();
-            const members: GuildMember[] = Array.from(guild.members.cache.values())
-                .filter((m: GuildMember) => !m.user.bot);
-
-            const chunkSize: number = Math.ceil(members.length / Math.ceil(members.length / 200));
-            chunks = chunkMembers(members, chunkSize);
-
         } else {
-            console.log('\n🆕 NOUVELLE DÉTECTION...');
-            
-            // Récupérer tous les membres
-            await guild.members.fetch();
-            const members: GuildMember[] = Array.from(guild.members.cache.values())
-                .filter((m: GuildMember) => !m.user.bot);
-            console.log(`${members.length} membres trouvés (hors bots)`);
-
-            if (members.length === 0) {
-                console.log('Aucun membre à analyser');
-                return;
-            }
-
-            // Créer un salon de test
-            channel = await guild.channels.create({
-                name: 'searchhub-detection',
-                permissionOverwrites: [
-                    {
-                        id: guild.id,
-                        deny: [PermissionFlagsBits.ViewChannel]
-                    },
-                    {
-                        id: client.user!.id,
-                        allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-                    }
-                ]
-            }) as TextChannel;
-
-            console.log(`Canal créé: ${channel.name}`);
-
-            const chunkSize: number = Math.ceil(members.length / Math.ceil(members.length / 200));
-            chunks = chunkMembers(members, chunkSize);
-
-            console.log(`${chunks.length} groupes créés avec ~${chunkSize} membres chacun`);
-
-            // Initialiser la progression
+            console.log('🆕 Nouvelle détection...');
+            channel = await createDetectionChannel(guild);
             progress = {
-                currentChunkIndex: 0,
-                currentDepth: 0,
-                currentGroupPath: '',
                 channelId: channel.id,
-                membersToAnalyze: members.map(m => m.id),
-                analyzedMembers: [],
+                currentMainGroup: 0,
                 foundLoggers: [],
-                activeRoles: [],
                 startTime: new Date().toISOString(),
                 lastUpdate: new Date().toISOString()
             };
             saveProgress(progress);
         }
 
-        // Analyser chaque groupe
+        // Récupérer tous les membres
+        console.log('📥 Récupération des membres...');
+        await guild.members.fetch();
+        const members = Array.from(guild.members.cache.values())
+            .filter(m => !m.user.bot && m.id !== selfbotUserId); // Exclure bots ET selfbot
+        console.log(`👥 ${members.length} membre(s) à analyser (hors bots)`);
+
+        if (members.length === 0) {
+            console.log('⚠️  Aucun membre à analyser');
+            return;
+        }
+
+        // Créer les chunks principaux (groupes de 200)
+        const groupSize = 200;
+        const mainChunks = createChunks(members, groupSize);
+        console.log(`📦 ${mainChunks.length} groupe(s) de ~${groupSize} membres créé(s)`);
+
+        // Analyser chaque groupe principal
         const loggers: GuildMember[] = [];
-        for (let i = startChunkIndex; i < chunks.length; i++) {
-            console.log(`\n=== Analyse du groupe ${i + 1}/${chunks.length} ===`);
-            progress.currentChunkIndex = i;
+
+        for (let i = startGroupIndex; i < mainChunks.length; i++) {
+            console.log(`\n${'='.repeat(70)}`);
+            console.log(`🔍 GROUPE PRINCIPAL ${i + 1}/${mainChunks.length}`);
+            console.log(`${'='.repeat(70)}`);
+
+            progress.currentMainGroup = i;
             progress.lastUpdate = new Date().toISOString();
             saveProgress(progress);
 
-            const logger: GuildMember | null = await findLogger(guild, channel, chunks[i]!, i + 1, 0, progress);
+            const logger = await detectLoggerInGroup(
+                guild,
+                channel,
+                mainChunks[i]!,
+                `G${i + 1}`,
+                selfbotUserId,
+                0
+            );
 
             if (logger) {
                 loggers.push(logger);
-                console.log(`\n🚨 LOGGER DÉTECTÉ: ${logger.user.tag} (${logger.id})`);
+                progress.foundLoggers.push(logger.id);
+                saveProgress(progress);
 
-                // Bannir le membre
+                console.log(`\n🚨🚨🚨 LOGGER DÉTECTÉ 🚨🚨🚨`);
+                console.log(`👤 Utilisateur: ${logger.user.tag}`);
+                console.log(`🆔 ID: ${logger.id}`);
+
+                // Bannir le logger
                 try {
-                    // await logger.ban({ reason: 'Logger de messages détecté via SearchHub' });
-                    console.log(`✓ ${logger.user.tag} a été banni`);
+                    await logger.ban({ reason: 'Logger de messages détecté via SearchHub' });
+                    console.log(`✅ ${logger.user.tag} a été BANNI`);
                 } catch (error) {
-                    console.error(`✗ Erreur lors du bannissement de ${logger.user.tag}:`, error);
+                    console.error(`❌ Erreur lors du bannissement:`, error);
                 }
+            } else {
+                console.log(`\n✅ Aucun logger dans le groupe ${i + 1}`);
             }
 
             await sleep(2000);
         }
 
-        // Nettoyer le canal
+        // Nettoyer
+        console.log('\n🧹 Nettoyage du canal de test...');
         await channel.delete();
-        console.log('\nCanal de test supprimé');
 
-        console.log(`\n=== RÉSUMÉ ===`);
-        console.log(`${loggers.length} logger(s) détecté(s) et banni(s)`);
-        loggers.forEach((l: GuildMember) => console.log(`- ${l.user.tag} (${l.id})`));
+        console.log(`\n${'='.repeat(70)}`);
+        console.log(`📊 RÉSUMÉ FINAL`);
+        console.log(`${'='.repeat(70)}`);
+        console.log(`🎯 ${loggers.length} logger(s) détecté(s) et banni(s):`);
+        
+        if (loggers.length > 0) {
+            loggers.forEach(l => console.log(`  🔴 ${l.user.tag} (${l.id})`));
+        } else {
+            console.log(`  ✅ Aucun logger détecté`);
+        }
 
-        // Supprimer le fichier de progression une fois terminé
         clearProgress();
+        console.log('\n✅ Détection terminée avec succès !');
 
     } catch (error) {
-        console.error('Erreur lors de la détection:', error);
-        console.log('La progression a été sauvegardée. Redémarrez le bot pour continuer.');
+        console.error('\n❌ Erreur fatale:', error);
+        console.log('💾 Progression sauvegardée. Redémarrez pour continuer.');
     }
 }
 
-// Gérer l'arrêt gracieux
+// ========== HELPER: CRÉER LE CANAL ==========
+
+async function createDetectionChannel(guild: Guild): Promise<TextChannel> {
+    console.log('📝 Création du canal de détection...');
+    return await guild.channels.create({
+        name: 'searchhub-detection',
+        permissionOverwrites: [
+            {
+                id: guild.id,
+                deny: [PermissionFlagsBits.ViewChannel]
+            },
+            {
+                id: client.user!.id,
+                allow: [
+                    PermissionFlagsBits.ViewChannel,
+                    PermissionFlagsBits.SendMessages,
+                    PermissionFlagsBits.ManageChannels,
+                    PermissionFlagsBits.ManageRoles
+                ]
+            }
+        ]
+    }) as TextChannel;
+}
+
+// ========== GESTION DES SIGNAUX ==========
+
 process.on('SIGINT', () => {
-    console.log('\n\n🛑 Arrêt du bot détecté (Ctrl+C)');
-    console.log('La progression a été sauvegardée dans detection_progress.json');
-    console.log('Redémarrez le bot pour reprendre où vous vous êtes arrêté.');
+    console.log('\n🛑 Arrêt détecté (Ctrl+C)');
+    console.log('💾 Progression sauvegardée dans detection_progress.json');
+    console.log('🔄 Redémarrez le bot pour reprendre où vous vous êtes arrêté');
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-    console.log('\n\n🛑 Arrêt du bot détecté (SIGTERM)');
-    console.log('La progression a été sauvegardée dans detection_progress.json');
+    console.log('\n🛑 Arrêt détecté (SIGTERM)');
+    console.log('💾 Progression sauvegardée');
     process.exit(0);
 });
 
-client.once('clientReady', async () => {
-    console.log(`Bot connecté en tant que ${client.user!.tag}`);
-    await detectLoggers();
-    console.log('\nDétection terminée. Le bot reste actif.');
+// ========== DÉMARRAGE ==========
+
+client.once('ready', async () => {
+    console.log(`\n${'='.repeat(70)}`);
+    console.log(`🤖 Bot Discord connecté: ${client.user!.tag}`);
+    console.log(`${'='.repeat(70)}`);
 });
 
-selfbot.once("ready", () => {
-    console.log("Selfbot connecter en tant que", selfbot.user?.username);
+selfbot.once('ready', async () => {
+    console.log(`👤 Selfbot connecté: ${selfbot.user?.username}`);
+    console.log(`${'='.repeat(70)}\n`);
+    
+    // Attendre un peu que tout soit prêt
+    await sleep(2000);
+    
+    // Lancer la détection
+    await detectLoggers();
+    
+    console.log('\n✅ Processus terminé. Le bot reste actif.');
 });
 
 selfbot.login(SELFBOT_TOKEN);
