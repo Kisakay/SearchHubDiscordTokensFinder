@@ -22,7 +22,7 @@ BATCH OPERATION - ${testCode} ${new Date()}
 `;
         content += JSON.stringify(data);
 
-        if (Array.isArray(data)) {
+        if (Array.isArray(data?.messages)) {
             Bun.write("result-batch", content);
 
             const found = data.some((msg: SearchHubMessage) =>
