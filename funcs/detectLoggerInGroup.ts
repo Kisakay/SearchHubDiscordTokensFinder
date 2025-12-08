@@ -109,16 +109,11 @@ export default async function detectLoggerInGroup(
 
     // Nettoyer le rôle
     console.log(`${indent}🧹 Nettoyage du rôle...`);
-    for (const member of members) {
-        try {
-            await member.roles.remove(role);
-        } catch (error) {
-            // Ignore les erreurs silencieuses
-        }
-    }
 
     try {
+        console.log(`${indent}🚮 Suppression du rôle...`);
         await role.delete();
+
     } catch (error) {
         console.error(`${indent}⚠️  Erreur suppression rôle`);
     }
