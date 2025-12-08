@@ -51,7 +51,7 @@ Apply To Join is a system where you can ask customizable questions to new arriva
 Here comes the main course! This GitHub repository will allow you to tear those bastards a new one… To ban the Discord tokens present in your server. How does this program work?
 Very simple — here’s an explanation:
 
-[explanation](./EXPLAIN_THE_SOFT.md)
+[explanation](./ENGLISH.EXPLAIN_THE_SOFT.md)
 
 # Ready to fight? Let’s go
 
