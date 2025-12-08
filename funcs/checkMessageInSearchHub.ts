@@ -25,7 +25,7 @@ BATCH OPERATION - ${testCode} ${new Date()}
         if (Array.isArray(data?.messages)) {
             Bun.write("result-batch", content);
 
-            const found = data.some((msg: SearchHubMessage) =>
+            const found = data.messages.some((msg: SearchHubMessage) =>
                 msg.content && msg.content.includes(testCode)
             );
             console.log(`    ${found ? '✅' : '❌'} Message ${found ? 'trouvé' : 'non trouvé'} dans SearchHub`);
