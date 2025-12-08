@@ -1,5 +1,0 @@
-faut faire une requête déjà search avec ton naviguateur web classique
-
-Dans F12 Network -> trouver la requête qui part pour fetch
-récuperer les cookies (car dedans ya le challenge cloudflare)
-puis tout mettre dans cookies.txt
