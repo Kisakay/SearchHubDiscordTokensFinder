@@ -3,7 +3,7 @@ import * as fs from 'fs';
 
 import type { ProgressData } from "../types/ProgressData";
 
-const PROGRESS_FILE = path.join(__dirname, 'detection_progress.json');
+const PROGRESS_FILE = path.join(__dirname, '..', 'detection_progress.json');
 
 export function loadProgress(): ProgressData | null {
     try {
