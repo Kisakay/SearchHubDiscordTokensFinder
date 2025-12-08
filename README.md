@@ -1,3 +1,5 @@
+# ENGLISH VERSION AT [CLICK HERE](./ENGLISH.README.MD)
+
 # SearchHubDiscordTokensFinder
 
 # Explication
