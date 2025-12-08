@@ -33,6 +33,7 @@ Le selfbot envoie un message du style: "Hello world for {groupNumber} group {gen
 5 seconde après enlève la dérogation
 
 éxecute la fonction searchDiscord()
+\\ la fonction envoie une requête post à searchub affin de lookup un membre, on l'utilise affin de savoir si le message envoyer dans le channel s'y trouve. Afin de trouver le token searchhub
 
 Check si le message_content apparait dans l'objet JSON de la réponse.
 

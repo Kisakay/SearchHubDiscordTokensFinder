@@ -41,3 +41,10 @@ Ensuite, voilà où il faudras allez pour activer le "Apply To Join"
 ![img tip2](./img/tip2.png)
 
 Le apply to join est un système sous forme de question personalisable que vous pourrais demander au nouveau arrivant. Il seront placer dans une fil d'attente, et ne seront pas sur le serveur discord en attendant. Il n'auront pas l'accès aux messages et contenue privée du serveur. Bien évidèment il pourrons très bien répondre aux réponses si leur programme est bien dévelopée, c'est pour cela que vous pourrais inspecter leur profil. (Date de création de compte trop récente, photo de profil récurante, bio trop "robotisé", les connections, etc). Vous pouvez même créer un groupe avec le membre pour lui poser plus de questions si vous avez des doutes
+
+# Trouver et éliminer les tokens
+
+Nous voilà au plat de résistance ! ce repositories github vas vous permettre de troué le cul à ces batards... De bannir les tokens discord se trouvant dans votre serveur. Comment fonctionne ce programme?
+Très simple, voici une explication:
+
+[explication](./EXPLAIN_THE_SOFT.md)
