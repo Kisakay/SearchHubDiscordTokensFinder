@@ -85,3 +85,15 @@ Si vous n'avez pas le bouton "Copy Server ID" allez dans: paramètre utilisateur
 - Récuperer le token d'un bot ALLEZ VOIR [CETTE DOCUMENTATION](https://docs.ihorizon.org/token-setup/create-token/)
 
 - récuperer le token de votre compte discord [CETTE DOCUMENTATION](https://gist.github.com/MarvNC/e601f3603df22f36ebd3102c501116c6)
+
+Il est nécessaire d'avoir du bon sens, et de savoir utiliser un peu un ordinateur avant de faire ceci.
+
+### étape numéro 4 - installer le Runtime BunJS pour lancer le programme
+
+J'utilises BUN en développement, mon code contient des fonctions utilisable seulement avec Bun. donc pas de nodejs
+
+[Vous trouverez un tutoriel simple pour l'installation de bun ici](https://bun.sh/)
+
+# Puis voilà, suffit de lire le terminal
+
+Cela prend du temps, plus vous avez de membres sur votre serveur discord, plus sa seras long.
