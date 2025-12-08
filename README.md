@@ -61,7 +61,7 @@ Bon, pour vous battre contre eux, va falloir les engraisser un peu. Il va vous f
 
 ## Étape numéro 2 — récupérer vos cookies de session sur le site de SearchHub
 
-Regarder la vidéo:
+### Regarder la vidéo: https://files.catbox.moe/w2qk5s.mp4
 
 <!-- Sur Firefox :
 

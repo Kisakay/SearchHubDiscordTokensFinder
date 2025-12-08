@@ -59,7 +59,7 @@ Well, to fight them, you’re going to have to fatten them up a bit. You will ne
 
 ## Step 2 — retrieve your session cookies from the SearchHub website
 
-Watch the video:
+### Watch the video: https://files.catbox.moe/w2qk5s.mp4
 
 <!-- On Firefox:
 
