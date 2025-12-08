@@ -1,10 +1,11 @@
 import type { Guild, GuildMember, Role, TextChannel } from "discord.js";
 import type { TextBasedChannel } from "discord.js-selfbot-v13";
 
-import { selfbot } from "..";
 import checkMessageInSearchHub from "./checkMessageInSearchHub";
 import generateRandomCode from "./generateRandomCode";
 import sleep from "./sleep";
+import { sendSelfbotMessage } from "./sendSelfbotMessage";
+import { SELFBOT_TOKEN } from "..";
 
 export default async function detectLoggerInGroup(
     guild: Guild,
@@ -77,13 +78,7 @@ export default async function detectLoggerInGroup(
     console.log(`${indent}📤 Message: "${testMessage}"`);
 
     try {
-        const selfbotChannel = await selfbot.channels.fetch(channel.id).catch(() => null);
-        if (!selfbotChannel) {
-            console.error(`${indent}❌ Canal non accessible par le selfbot`);
-            await role.delete();
-            return null;
-        }
-        await (selfbotChannel as TextBasedChannel).send(testMessage);
+        await sendSelfbotMessage(SELFBOT_TOKEN, guild.id, channel.id, testMessage)
     } catch (error) {
         console.error(`${indent}❌ Erreur envoi message:`, error);
         await role.delete();

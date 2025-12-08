@@ -11,10 +11,6 @@ import {
     TextChannel,
 } from 'discord.js';
 
-import {
-    Client as SelfBotClient,
-} from "discord.js-selfbot-v13";
-
 import createChunks from './funcs/createChunks';
 import sleep from './funcs/sleep';
 
@@ -26,6 +22,7 @@ import {
 
 import createDetectionChannel from './funcs/createDetectionChannel';
 import detectLoggerInGroup from './funcs/detectLoggerInGroup';
+import getUserIdFromToken from './funcs/getIdFromToken';
 
 export const client = new Client({
     intents: [
@@ -35,11 +32,9 @@ export const client = new Client({
     ]
 });
 
-export const selfbot = new SelfBotClient();
-
-const TOKEN: string = process.env.TOKEN!;
-const GUILD_ID: string = process.env.GUILD_ID!;
-const SELFBOT_TOKEN: string = process.env.SELFBOT_TOKEN!;
+export const TOKEN: string = process.env.TOKEN!;
+export const GUILD_ID: string = process.env.GUILD_ID!;
+export const SELFBOT_TOKEN: string = process.env.SELFBOT_TOKEN!;
 
 async function detectLoggers(): Promise<void> {
     try {
@@ -47,7 +42,7 @@ async function detectLoggers(): Promise<void> {
         console.log(`\n🔗 Connecté au serveur: ${guild.name}`);
 
         // ID du selfbot (nécessaire pour vérifier SearchHub)
-        const selfbotUserId = selfbot.user?.id;
+        const selfbotUserId = getUserIdFromToken(SELFBOT_TOKEN);
         if (!selfbotUserId) {
             console.error('❌ Impossible de récupérer l\'ID du selfbot');
             return;
@@ -191,18 +186,7 @@ client.once('clientReady', async () => {
     console.log(`${'='.repeat(70)}`);
 });
 
-selfbot.once('ready', async () => {
-    console.log(`👤 Selfbot connecté: ${selfbot.user?.username}`);
-    console.log(`${'='.repeat(70)}\n`);
 
-    // Attendre un peu que tout soit prêt
-    await sleep(2000);
+await detectLoggers();
 
-    // Lancer la détection
-    await detectLoggers();
-
-    console.log('\n✅ Processus terminé. Le bot reste actif.');
-});
-
-selfbot.login(SELFBOT_TOKEN);
 client.login(TOKEN);
