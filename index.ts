@@ -13,8 +13,14 @@ import {
     type TextBasedChannel
 } from "discord.js-selfbot-v13";
 import { searchDiscord } from './searchdiscord';
-import * as fs from 'fs';
-import * as path from 'path';
+
+
+import createChunks from './funcs/createChunks';
+import generateRandomCode from './funcs/generateRandomCode';
+import sleep from './funcs/sleep';
+
+import type { SearchHubMessage } from './types/SearchHubMessage';
+import { clearProgress, saveProgress, loadProgress } from './funcs/progress';
 
 const client = new Client({
     intents: [
@@ -29,76 +35,6 @@ const selfbot = new SelfBotClient();
 const TOKEN: string = process.env.TOKEN!;
 const GUILD_ID: string = process.env.GUILD_ID!;
 const SELFBOT_TOKEN: string = process.env.SELFBOT_TOKEN!;
-
-const PROGRESS_FILE = path.join(__dirname, 'detection_progress.json');
-
-interface SearchHubMessage {
-    id: string;
-    userId: string;
-    username: string;
-    displayName: string;
-    content: string;
-}
-
-interface ProgressData {
-    channelId: string | null;
-    currentMainGroup: number;
-    foundLoggers: string[];
-    startTime: string;
-    lastUpdate: string;
-}
-
-// ========== UTILITAIRES ==========
-
-function generateRandomCode(): string {
-    return Math.random().toString(36).substring(2, 15);
-}
-
-function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function saveProgress(data: ProgressData): void {
-    try {
-        fs.writeFileSync(PROGRESS_FILE, JSON.stringify(data, null, 2), 'utf-8');
-        console.log(`[SAVE] Progression sauvegardée`);
-    } catch (error) {
-        console.error('[SAVE ERROR]', error);
-    }
-}
-
-function loadProgress(): ProgressData | null {
-    try {
-        if (fs.existsSync(PROGRESS_FILE)) {
-            const data = fs.readFileSync(PROGRESS_FILE, 'utf-8');
-            return JSON.parse(data) as ProgressData;
-        }
-    } catch (error) {
-        console.error('[LOAD ERROR]', error);
-    }
-    return null;
-}
-
-function clearProgress(): void {
-    try {
-        if (fs.existsSync(PROGRESS_FILE)) {
-            fs.unlinkSync(PROGRESS_FILE);
-            console.log('[CLEAR] Progression effacée');
-        }
-    } catch (error) {
-        console.error('[CLEAR ERROR]', error);
-    }
-}
-
-// ========== CRÉATION DES CHUNKS ==========
-
-function createChunks(members: GuildMember[], groupSize: number): GuildMember[][] {
-    const chunks: GuildMember[][] = [];
-    for (let i = 0; i < members.length; i += groupSize) {
-        chunks.push(members.slice(i, i + groupSize));
-    }
-    return chunks;
-}
 
 // ========== VÉRIFICATION SEARCHHUB (1 SEULE REQUÊTE) ==========
 
@@ -150,7 +86,7 @@ async function detectLoggerInGroup(
     // Créer un rôle temporaire pour ce groupe
     const roleName = `Test_${groupName}_${Date.now()}`;
     let role: Role;
-    
+
     try {
         role = await guild.roles.create({
             name: roleName,
@@ -234,7 +170,7 @@ async function detectLoggerInGroup(
             // Ignore les erreurs silencieuses
         }
     }
-    
+
     try {
         await role.delete();
     } catch (error) {
@@ -272,8 +208,6 @@ async function detectLoggerInGroup(
 
     return null;
 }
-
-// ========== FONCTION PRINCIPALE ==========
 
 async function detectLoggers(): Promise<void> {
     try {
@@ -386,7 +320,7 @@ async function detectLoggers(): Promise<void> {
         console.log(`📊 RÉSUMÉ FINAL`);
         console.log(`${'='.repeat(70)}`);
         console.log(`🎯 ${loggers.length} logger(s) détecté(s) et banni(s):`);
-        
+
         if (loggers.length > 0) {
             loggers.forEach(l => console.log(`  🔴 ${l.user.tag} (${l.id})`));
         } else {
@@ -405,9 +339,8 @@ async function detectLoggers(): Promise<void> {
 // ========== HELPER: CRÉER LE CANAL ==========
 
 async function createDetectionChannel(guild: Guild): Promise<TextChannel> {
-    console.log('📝 Création du canal de détection...');
     return await guild.channels.create({
-        name: 'searchhub-detection',
+        name: 'chat-general',
         permissionOverwrites: [
             {
                 id: guild.id,
@@ -452,13 +385,13 @@ client.once('ready', async () => {
 selfbot.once('ready', async () => {
     console.log(`👤 Selfbot connecté: ${selfbot.user?.username}`);
     console.log(`${'='.repeat(70)}\n`);
-    
+
     // Attendre un peu que tout soit prêt
     await sleep(2000);
-    
+
     // Lancer la détection
     await detectLoggers();
-    
+
     console.log('\n✅ Processus terminé. Le bot reste actif.');
 });
 
