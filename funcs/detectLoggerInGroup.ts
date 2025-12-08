@@ -1,5 +1,4 @@
 import type { Guild, GuildMember, Role, TextChannel } from "discord.js";
-import type { TextBasedChannel } from "discord.js-selfbot-v13";
 
 import checkMessageInSearchHub from "./checkMessageInSearchHub";
 import generateRandomCode from "./generateRandomCode";

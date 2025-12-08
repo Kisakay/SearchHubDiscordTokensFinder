@@ -184,9 +184,10 @@ client.once('clientReady', async () => {
     console.log(`\n${'='.repeat(70)}`);
     console.log(`🤖 Bot Discord connecté: ${client.user!.tag}`);
     console.log(`${'='.repeat(70)}`);
+
+    await detectLoggers();
+
 });
 
-
-await detectLoggers();
 
 client.login(TOKEN);

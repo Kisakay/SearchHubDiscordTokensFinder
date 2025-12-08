@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "discord.js": "^14.25.1",
-    "discord.js-selfbot-v13": "^3.7.1",
     "ihorizon-tools": "^1.9.0"
   }
 }
