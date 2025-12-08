@@ -13,9 +13,12 @@ export default async function checkMessageInSearchHub(selfbotUserId: string, tes
             content += await file.text()
         };
 
-        content += `==================
+        content += `
+
+==================
 BATCH OPERATION - ${testCode} ${new Date()}
-==================        
+==================
+
 `;
         content += JSON.stringify(data);
 
