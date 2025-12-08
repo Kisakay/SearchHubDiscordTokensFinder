@@ -6,7 +6,7 @@ Ce programme est conçu pour identifier les membres d'un serveur Discord qui uti
 ## Fonctionnement détaillé
 
 ### 1. Configuration initiale
-- Le selfbot se connecte au serveur Discord ciblé
+- Le bot se connecte au serveur Discord ciblé
 - Il récupère la liste complète de tous les membres du serveur
 - Les membres sont divisés en plusieurs groupes égaux (ex: 1000 membres = 5 groupes de 200)
 
@@ -20,7 +20,8 @@ Pour chaque groupe successivement :
 
 **Étape A : Exposition**
 - Le groupe ciblé reçoit temporairement la permission de voir le salon
-- Le selfbot envoie un message unique avec un code aléatoire (ex: "Hello world for group 1 code ABC123")
+- Le selfbot envoie un message unique avec un code aléatoire (ex: "Hello world for group 1 code ABC123") 
+### (searchhub indexe uniquement les messages de compte utilisateur)
 
 **Étape B : Vérification externe**
 - Après 5 secondes, la permission est révoquée (le groupe ne voit plus le salon)
