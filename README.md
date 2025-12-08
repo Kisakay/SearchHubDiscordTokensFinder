@@ -61,7 +61,9 @@ Bon, pour vous battre contre eux, va falloir les engraisser un peu. Il va vous f
 
 ## Étape numéro 2 — récupérer vos cookies de session sur le site de SearchHub
 
-Sur Firefox :
+Regarder la vidéo:
+
+<!-- Sur Firefox :
 
 Exemple :
 ![img tip2](./img/tip3.png)
@@ -69,7 +71,9 @@ Exemple :
 https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/?utm_campaign=external-cookie-editor.com
 
 Ensuite, avec vos cookies dans le presse-papier, créez un fichier appelé `cookies.txt` dans la racine du dossier.
-
+ -->
+ <!-- j'ai commenter ce code car je me suis rendue compte après teste que cela ne marche pas. il faut récuperer le cookie challenge de cloudflare
+ pour récuperer ce cookie, faut faire une requête API propre -->
 Tel que :
 
 ![img tip2](./img/tip4.png)

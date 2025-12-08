@@ -59,7 +59,9 @@ Well, to fight them, you’re going to have to fatten them up a bit. You will ne
 
 ## Step 2 — retrieve your session cookies from the SearchHub website
 
-On Firefox:
+Watch the video:
+
+<!-- On Firefox:
 
 Example:
 ![img tip2](./img/tip3.png)
@@ -70,7 +72,9 @@ Then, with your cookies in the clipboard, create a file named `cookies.txt` at t
 
 Like this:
 
-![img tip2](./img/tip4.png)
+![img tip2](./img/tip4.png) -->
+ <!-- j'ai commenter ce code car je me suis rendue compte après teste que cela ne marche pas. il faut récuperer le cookie challenge de cloudflare
+ pour récuperer ce cookie, faut faire une requête API propre -->
 
 ## Step 3 — start configuring the environment file
 
