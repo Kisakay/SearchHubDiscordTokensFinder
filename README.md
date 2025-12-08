@@ -79,4 +79,9 @@ SELFBOT_TOKEN = "TOKEN DE VOTRE COMPTE DISCORD"
 ```
 
 - Copier l'identifiant de votre serveur
-![img tip2](./img/tip4.png)
+![img tip2](./img/tip5.png)
+Si vous n'avez pas le bouton "Copy Server ID" allez dans: paramètre utilisateur > Advanced/Paramètre Avancer > Mode développeur > Activé-le
+
+- Récuperer le token d'un bot ALLEZ VOIR [CETTE DOCUMENTATION](https://docs.ihorizon.org/token-setup/create-token/)
+
+- récuperer le token de votre compte discord [CETTE DOCUMENTATION](https://gist.github.com/MarvNC/e601f3603df22f36ebd3102c501116c6)
