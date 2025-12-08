@@ -66,6 +66,8 @@ Sur Firefox :
 Exemple :
 ![img tip2](./img/tip3.png)
 
+https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/?utm_campaign=external-cookie-editor.com
+
 Ensuite, avec vos cookies dans le presse-papier, créez un fichier appelé `cookies.txt` dans la racine du dossier.
 
 Tel que :

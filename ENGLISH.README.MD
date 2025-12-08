@@ -64,6 +64,8 @@ On Firefox:
 Example:
 ![img tip2](./img/tip3.png)
 
+https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/?utm_campaign=external-cookie-editor.com
+
 Then, with your cookies in the clipboard, create a file named `cookies.txt` at the root of the folder.
 
 Like this:
