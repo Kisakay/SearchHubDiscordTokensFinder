@@ -12,9 +12,9 @@ export default async function checkMessageInSearchHub(selfbotUserId: string, tes
         if (await file.exists()) {
             content += await file.text()
         };
-        
+
         content += `==================
-BATCH OPERATION - ${testCode}
+BATCH OPERATION - ${testCode} ${new Date()}
 ==================        
 `;
         content += data;
@@ -29,6 +29,8 @@ BATCH OPERATION - ${testCode}
             return found;
         }
         console.log(`    ❌ Réponse SearchHub invalide`);
+
+        Bun.write("result-batch", content)
         return false;
     } catch (error) {
         console.error(`    ❌ Erreur SearchHub:`, error);
