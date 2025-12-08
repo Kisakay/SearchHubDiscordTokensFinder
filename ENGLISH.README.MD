@@ -2,7 +2,7 @@
   <img src="./image.png" alt="rip searchhub" width="400" />
 </p>
 
-# SearchHubDiscordTokensFinder
+# SearchHubDiscordTokensFinder - Don't be mad SearchHub
 
 # Explanation
 

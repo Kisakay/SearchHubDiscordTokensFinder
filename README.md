@@ -4,7 +4,7 @@
 
 # ENGLISH VERSION AT [CLICK HERE](./ENGLISH.README.MD)
 
-# SearchHubDiscordTokensFinder
+# SearchHubDiscordTokensFinder - Don't be mad SearchHub
 
 # Explication
 
