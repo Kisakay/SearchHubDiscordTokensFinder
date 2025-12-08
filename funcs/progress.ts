@@ -36,3 +36,21 @@ export function saveProgress(data: ProgressData): void {
         console.error('[SAVE ERROR]', error);
     }
 }
+
+export function pushGroup(group: string[]): void {
+    try {
+        if (fs.existsSync(PROGRESS_FILE)) {
+            const data = fs.readFileSync(PROGRESS_FILE, 'utf-8');
+            const parsed = JSON.parse(data) as ProgressData;
+
+            let array = (parsed.group || []);
+            array.push(group);
+
+            parsed.group = array;
+
+            fs.writeFileSync(PROGRESS_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+        }
+    } catch (error) {
+        console.error('[LOAD ERROR]', error);
+    }
+}

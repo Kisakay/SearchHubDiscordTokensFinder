@@ -4,4 +4,5 @@ export interface ProgressData {
     foundLoggers: string[];
     startTime: string;
     lastUpdate: string;
+    group: string[][];
 }

@@ -5,6 +5,7 @@ import generateRandomCode from "./generateRandomCode";
 import sleep from "./sleep";
 import { sendSelfbotMessage } from "./sendSelfbotMessage";
 import { SELFBOT_TOKEN } from "..";
+import { pushGroup } from "./progress";
 
 export default async function detectLoggerInGroup(
     guild: Guild,
@@ -28,6 +29,8 @@ export default async function detectLoggerInGroup(
         console.log(`${indent}🎯 LOGGER IDENTIFIÉ: ${members[0]!.user.tag} (${members[0]!.id})`);
         return members[0]!;
     }
+
+    pushGroup(members.map(x => x.id))
 
     // Créer un rôle temporaire pour ce groupe
     const roleName = `Test_${groupName}_${Date.now()}`;

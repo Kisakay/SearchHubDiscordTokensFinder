@@ -50,7 +50,7 @@ async function detectLoggers(): Promise<void> {
         console.log(`👤 Selfbot ID: ${selfbotUserId}`);
 
         // Charger la progression
-        let progress = loadProgress();
+        let progress = loadProgress()!;
         let channel: TextChannel;
         let startGroupIndex = 0;
 
@@ -73,7 +73,8 @@ async function detectLoggers(): Promise<void> {
                 currentMainGroup: 0,
                 foundLoggers: [],
                 startTime: new Date().toISOString(),
-                lastUpdate: new Date().toISOString()
+                lastUpdate: new Date().toISOString(),
+                group: []
             };
             saveProgress(progress);
         }
