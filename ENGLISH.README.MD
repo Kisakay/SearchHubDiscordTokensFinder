@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./image.png" alt="rip searchhub" width="400" />
+</p>
+
 # SearchHubDiscordTokensFinder
 
 # Explanation
