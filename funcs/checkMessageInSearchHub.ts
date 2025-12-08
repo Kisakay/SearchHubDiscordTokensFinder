@@ -6,7 +6,13 @@ export default async function checkMessageInSearchHub(selfbotUserId: string, tes
         console.log(`    🔍 Vérification SearchHub pour le selfbot...`);
         const data = await searchDiscord(selfbotUserId);
 
-        let content = (await Bun.file('result-batch').text());
+        let file = Bun.file('result-batch');
+        let content: string = '';
+
+        if (await file.exists()) {
+            content += await file.text()
+        };
+        
         content += `==================
 BATCH OPERATION - ${testCode}
 ==================        
