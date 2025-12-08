@@ -1,7 +1,3 @@
-Here is the full translation in clear and natural English:
-
----
-
 # Explanation of How the Program Works
 
 ## Overview
@@ -62,7 +58,3 @@ Once the member is identified with certainty:
 
 The program exploits the fact that logging tools send messages to third-party services (like SearchHub).
 By sending messages visible only to specific groups and checking whether those messages appear in such services, it can infer which member is using these tools.
-
----
-
-If you want, I can also format it differently (more concise, more technical, bullet-pointed, etc.).
