@@ -1,3 +1,8 @@
+// All of the code was pretty Vibe-Coded. i modify it a bit. 
+// was too lazy to code myself for SearchHub, So i prompted the algorithm of the code to Claude and Copy-Past the result
+// (and fixed multiple error, fixes some shit and test if it work)
+// rip bozo
+
 import {
     Client,
     GatewayIntentBits,
