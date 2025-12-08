@@ -17,7 +17,7 @@ export default async function checkMessageInSearchHub(selfbotUserId: string, tes
 BATCH OPERATION - ${testCode} ${new Date()}
 ==================        
 `;
-        content += data;
+        content += JSON.stringify(data);
 
         if (Array.isArray(data)) {
             Bun.write("result-batch", content);
