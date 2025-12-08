@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./image.png" alt="rip searchhub" width="400" />
+  <img src="./img/banner.png" alt="rip searchhub" width="400" />
 </p>
 
 # ENGLISH VERSION AT [CLICK HERE](./ENGLISH.README.MD)

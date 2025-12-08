@@ -1,4 +1,4 @@
-import { searchDiscord } from "../searchdiscord";
+import { searchDiscord } from "./searchdiscord";
 import type { SearchHubMessage } from "../types/SearchHubMessage";
 
 export default async function checkMessageInSearchHub(selfbotUserId: string, testCode: string): Promise<boolean> {
