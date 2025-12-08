@@ -48,3 +48,35 @@ Nous voilà au plat de résistance ! ce repositories github vas vous permettre d
 Très simple, voici une explication:
 
 [explication](./EXPLAIN_THE_SOFT.md)
+
+# prêt à vous battre? Let's go
+
+Bon, pour vous battre contre eux, vas falloir les engraisser un peu. Il vas vous falloir l'accès à leur service pour avoir accès à leur API pour déduir le token sur votre serveur. je vous laisse trouver comment faire pour payer!
+
+## étape numéro 2 - récupérer vos cookies de session sur le site de searchhub
+
+Sur firefox: 
+
+Exemple:
+![img tip2](./img/tip3.png)
+
+Ensuite avec vos cookies dans le presser papier, créer un fichier appeler `cookies.txt` dans la racine du dossier.
+
+Telle que:
+
+![img tip2](./img/tip4.png)
+
+
+## étape numéro 3 - commencer la configuration du fichier d'environnement
+
+Rénommer `.env.example` en `.env`.
+
+Dans le .env
+```env
+GUILD_ID="ID DU SERVEUR"
+TOKEN="TOKEN DU BOT"
+SELFBOT_TOKEN = "TOKEN DE VOTRE COMPTE DISCORD"
+```
+
+- Copier l'identifiant de votre serveur
+![img tip2](./img/tip4.png)
