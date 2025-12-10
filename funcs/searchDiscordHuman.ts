@@ -5,16 +5,16 @@ export async function searchhubDiscordHuman(
     password: string,
     discordId: string
 ) {
-    const FIREFOX_PROFILE_PATH = process.env.FIREFOX_USER_PATH!;
+    const BROWSER_PROFILE_PATH = process.env.BROWSER_PROFILE_PATH!;
 
+    console.log(BROWSER_PROFILE_PATH)
     const browser = await puppeteer.launch({
         headless: false,
-        browser: "firefox",
+        browser: "chrome",
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
         args: [
-            `--profile=${FIREFOX_PROFILE_PATH}`,
-            // "--no-sandbox",
-            // "--disable-setuid-sandbox",
+            `--user-data-dir=${BROWSER_PROFILE_PATH}`,
+            '--profile-directory=Default',
         ],
         ignoreDefaultArgs: ['--enable-automation'],
     });
