@@ -1,8 +1,6 @@
 import puppeteer from "puppeteer-extra";
 
 export async function searchhubDiscordHuman(
-    username: string,
-    password: string,
     discordId: string
 ) {
     const BROWSER_PROFILE_PATH = process.env.BROWSER_PROFILE_PATH!;
@@ -99,11 +97,8 @@ export async function searchhubDiscordHuman(
     // === 9. Press Enter pour lancer la recherche ===
     console.log("[+] Envoi de la recherche...");
     await input!.press("Enter");
-    console.log("[+] Attente du JSON...");
     const json = await apiResponse;
-    console.log("[+] Reçu :");
-    console.log(json);
 
     await browser.close();
-    return json;
+    return json as any;
 }

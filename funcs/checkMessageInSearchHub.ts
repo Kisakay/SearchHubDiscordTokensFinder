@@ -1,10 +1,10 @@
-import { searchDiscord } from "./searchdiscord";
+import { searchhubDiscordHuman } from "./searchDiscordHuman";
 import type { SearchHubMessage } from "../types/SearchHubMessage";
 
 export default async function checkMessageInSearchHub(selfbotUserId: string, testCode: string): Promise<boolean> {
     try {
         console.log(`    🔍 Vérification SearchHub pour le selfbot...`);
-        const data = await searchDiscord(selfbotUserId);
+        const data = await searchhubDiscordHuman(selfbotUserId);
 
         let file = Bun.file('result-batch');
         let content: string = '';
