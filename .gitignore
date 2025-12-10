@@ -36,3 +36,4 @@ test.*
 cookies.txt
 detection_progress.json
 result-batch
+package-lock.json

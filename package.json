@@ -11,6 +11,11 @@
   },
   "dependencies": {
     "discord.js": "^14.25.1",
-    "ihorizon-tools": "^1.9.0"
+    "ihorizon-tools": "^1.9.0",
+    "playwright": "^1.57.0",
+    "playwright-extra": "^4.3.6",
+    "puppeteer": "^24.32.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }
