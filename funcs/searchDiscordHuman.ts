@@ -1,7 +1,23 @@
 import puppeteer from "puppeteer-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
 
-// puppeteer.use(StealthPlugin());
+// === 2. Cliquer sur Login ===
+// console.log("[+] Clique sur Login...");
+// await page.waitForSelector("a[href='/login']", { timeout: 10000 });
+// await page.click("a[href='/login']");
+// await page.waitForSelector("#username", { timeout: 10000 });
+
+// // === 3. Entrer login ===
+// console.log("[+] Remplissage username...");
+// await page.type("#username", username, { delay: 100 });
+// console.log("[+] Remplissage password...");
+// await page.type("#password", password, { delay: 100 });
+
+// // === 4. Cliquer sur Log in → ===
+// console.log("[+] clic bouton Log in →");
+// await page.click("button[type='submit']");
+// await page.waitForNavigation({ waitUntil: "networkidle2" });
+// console.log("[+] Connecté.");
+
 
 export async function searchhubDiscordHuman(
     username: string,
@@ -10,13 +26,12 @@ export async function searchhubDiscordHuman(
 ) {
     const FIREFOX_PROFILE_PATH = process.env.FIREFOX_USER_PATH!;
 
-    console.log(process.env.PUPPETEER_EXECUTABLE_PATH)
     const browser = await puppeteer.launch({
         headless: false,
-        browser: "firefox", // IMPORTANT: utiliser Firefox
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH, // Chemin vers ton Firefox
+        browser: "firefox",
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
         args: [
-            `--profile=${FIREFOX_PROFILE_PATH}`, // Utilise ton profil
+            `--profile=${FIREFOX_PROFILE_PATH}`,
             // "--no-sandbox",
             // "--disable-setuid-sandbox",
         ],
@@ -34,7 +49,7 @@ export async function searchhubDiscordHuman(
 
     await page.setViewport({ width: 1280, height: 900 });
     console.log("[+] Ouverture SearchHub...");
-    await page.goto("https://searchhub.vip/", { waitUntil: "load" });
+    await page.goto("https://searchhub.vip/search", { waitUntil: "load" });
 
     await page.waitForNavigation({ waitUntil: "load" });
 
@@ -54,29 +69,12 @@ export async function searchhubDiscordHuman(
 
     console.log("[+] Cloudflare passé !");
 
-    // === 2. Cliquer sur Login ===
-    console.log("[+] Clique sur Login...");
-    await page.waitForSelector("a[href='/login']", { timeout: 10000 });
-    await page.click("a[href='/login']");
-    await page.waitForSelector("#username", { timeout: 10000 });
-
-    // === 3. Entrer login ===
-    console.log("[+] Remplissage username...");
-    await page.type("#username", username, { delay: 100 });
-    console.log("[+] Remplissage password...");
-    await page.type("#password", password, { delay: 100 });
-
-    // === 4. Cliquer sur Log in → ===
-    console.log("[+] clic bouton Log in →");
-    await page.click("button[type='submit']");
-    await page.waitForNavigation({ waitUntil: "networkidle2" });
-    console.log("[+] Connecté.");
+    await Bun.sleep(3995);
 
     // === 5. Aller dans Search ===
     console.log("[+] Navigation vers /search...");
-    await page.click("a[href='/search']");
-    await page.waitForNavigation({ waitUntil: "networkidle2" });
-
+    
+    await Bun.sleep(5000)
     // === 6. Choisir Discord ===
     console.log("[+] Clique Discord...");
     await page.waitForSelector("button:has(svg[viewBox='0 0 640 512'])");
