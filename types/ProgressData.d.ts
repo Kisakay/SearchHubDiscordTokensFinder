@@ -5,5 +5,6 @@ export interface ProgressData {
     startTime: string;
     lastUpdate: string;
     group: string[][];
-    legitUsers: string[]
+    legitUsers: string[];
+    roleIds?: string[]; // IDs des rôles réutilisables
 }

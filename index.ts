@@ -24,6 +24,7 @@ import {
 import createDetectionChannel from './funcs/createDetectionChannel';
 import detectLoggerInGroup from './funcs/detectLoggerInGroup';
 import getUserIdFromToken from './funcs/getIdFromToken';
+import { RoleManager } from './funcs/roleManager';
 
 export const client = new Client({
     intents: [
@@ -84,19 +85,47 @@ async function detectLoggers(): Promise<void> {
         // Récupérer tous les membres
         console.log('📥 Récupération des membres...');
         await guild.members.fetch();
-        const members = Array.from(guild.members.cache.values())
+        const allMembers = Array.from(guild.members.cache.values())
             .filter(m => !m.user.bot && m.id !== selfbotUserId); // Exclure bots ET selfbot
-        console.log(`👥 ${members.length} membre(s) à analyser (hors bots)`);
+        console.log(`👥 ${allMembers.length} membre(s) total(aux) à analyser (hors bots)`);
 
-        if (members.length === 0) {
+        if (allMembers.length === 0) {
             console.log('⚠️  Aucun membre à analyser');
             return;
         }
 
+        // Initialiser le gestionnaire de rôles réutilisables
+        const roleManager = new RoleManager(guild, 50);
+        await roleManager.initialize();
+
         // Créer les chunks principaux (groupes de 200)
         const groupSize = 200;
-        const mainChunks = createChunks(members, groupSize);
+        const mainChunks = createChunks(allMembers, groupSize);
         console.log(`📦 ${mainChunks.length} groupe(s) de ~${groupSize} membres créé(s)`);
+
+        // Vérifier que tous les membres sont bien dans un groupe
+        const membersInChunks = new Set<string>();
+        mainChunks.forEach(chunk => {
+            chunk.forEach(member => membersInChunks.add(member.id));
+        });
+
+        const missingMembers = allMembers.filter(m => !membersInChunks.has(m.id));
+        if (missingMembers.length > 0) {
+            console.log(`\n⚠️  ATTENTION: ${missingMembers.length} membre(s) non inclus dans les groupes:`);
+            missingMembers.forEach(m => console.log(`  - ${m.user.tag} (${m.id})`));
+            console.log('\n🔄 Ajout des membres manquants au dernier groupe...');
+            
+            // Ajouter les membres manquants au dernier groupe
+            if (mainChunks.length > 0) {
+                mainChunks[mainChunks.length - 1]!.push(...missingMembers);
+            } else {
+                mainChunks.push(missingMembers);
+            }
+            
+            console.log(`✅ Tous les membres sont maintenant inclus dans les groupes`);
+        } else {
+            console.log(`✅ Vérification: Tous les membres sont inclus dans les groupes`);
+        }
 
         // Analyser chaque groupe principal
         const loggers: GuildMember[] = [];
@@ -116,6 +145,7 @@ async function detectLoggers(): Promise<void> {
                 mainChunks[i]!,
                 `G${i + 1}`,
                 selfbotUserId,
+                roleManager,
                 0
             );
 
@@ -136,15 +166,19 @@ async function detectLoggers(): Promise<void> {
                     console.error(`❌ Erreur lors du bannissement:`, error);
                 }
             } else {
-                legitUsers(members.map(x => x.id));
+                legitUsers(mainChunks[i]!.map(x => x.id));
                 console.log(`\n✅ Aucun logger dans le groupe ${i + 1}`);
             }
 
             await sleep(2000);
         }
 
-        // Nettoyer
-        console.log('\n🧹 Nettoyage du canal de test...');
+        // Nettoyer les rôles réutilisables
+        console.log('\n🧹 Nettoyage des rôles réutilisables...');
+        await roleManager.cleanup();
+
+        // Nettoyer le canal de test
+        console.log('🧹 Nettoyage du canal de test...');
         await channel.delete();
 
         console.log(`\n${'='.repeat(70)}`);
