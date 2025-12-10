@@ -74,10 +74,22 @@ export async function searchhubDiscordHuman(
         page.on("response", async (res) => {
             const url = res.url();
             if (url.includes("/api/search/discord")) {
+                console.log(`[+] API interceptée: ${url}`);
+                console.log(`[+] Status: ${res.status()}`);
+
                 try {
-                    const data = await res.json();
-                    resolve(data);
+                    const text = await res.text();
+                    console.log(`[+] Response text: ${text}`);
+
+                    if (text) {
+                        const data = JSON.parse(text);
+                        resolve(data);
+                    } else {
+                        console.log("[!] Réponse vide");
+                        resolve(null);
+                    }
                 } catch (e) {
+                    console.error("[!] Erreur parsing:", e);
                     resolve(null);
                 }
             }
