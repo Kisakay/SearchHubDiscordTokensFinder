@@ -88,8 +88,8 @@ export default async function detectLoggerInGroup(
     }
 
     // Attendre 5 secondes
-    console.log(`${indent}⏳ Attente de 5 secondes...`);
-    await sleep(5000);
+    console.log(`${indent}⏳ Attente de 19 secondes...`);
+    await sleep(19000);
 
     // Retirer la permission
     try {
