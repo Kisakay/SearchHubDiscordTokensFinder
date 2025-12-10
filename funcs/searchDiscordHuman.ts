@@ -1,24 +1,5 @@
 import puppeteer from "puppeteer-extra";
 
-// === 2. Cliquer sur Login ===
-// console.log("[+] Clique sur Login...");
-// await page.waitForSelector("a[href='/login']", { timeout: 10000 });
-// await page.click("a[href='/login']");
-// await page.waitForSelector("#username", { timeout: 10000 });
-
-// // === 3. Entrer login ===
-// console.log("[+] Remplissage username...");
-// await page.type("#username", username, { delay: 100 });
-// console.log("[+] Remplissage password...");
-// await page.type("#password", password, { delay: 100 });
-
-// // === 4. Cliquer sur Log in → ===
-// console.log("[+] clic bouton Log in →");
-// await page.click("button[type='submit']");
-// await page.waitForNavigation({ waitUntil: "networkidle2" });
-// console.log("[+] Connecté.");
-
-
 export async function searchhubDiscordHuman(
     username: string,
     password: string,
@@ -73,7 +54,7 @@ export async function searchhubDiscordHuman(
 
     // === 5. Aller dans Search ===
     console.log("[+] Navigation vers /search...");
-    
+
     await Bun.sleep(5000)
     // === 6. Choisir Discord ===
     console.log("[+] Clique Discord...");
