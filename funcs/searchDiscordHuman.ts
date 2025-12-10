@@ -5,7 +5,6 @@ export async function searchhubDiscordHuman(
 ) {
     const BROWSER_PROFILE_PATH = process.env.BROWSER_PROFILE_PATH!;
 
-    console.log(BROWSER_PROFILE_PATH)
     const browser = await puppeteer.launch({
         headless: false,
         browser: "chrome",
@@ -48,11 +47,6 @@ export async function searchhubDiscordHuman(
 
     console.log("[+] Cloudflare passé !");
 
-    await Bun.sleep(3995);
-
-    // === 5. Aller dans Search ===
-    console.log("[+] Navigation vers /search...");
-
     await Bun.sleep(5000)
     // === 6. Choisir Discord ===
     console.log("[+] Clique Discord...");
@@ -72,22 +66,15 @@ export async function searchhubDiscordHuman(
         page.on("response", async (res) => {
             const url = res.url();
             if (url.includes("/api/search/discord")) {
-                console.log(`[+] API interceptée: ${url}`);
-                console.log(`[+] Status: ${res.status()}`);
-
                 try {
                     const text = await res.text();
-                    console.log(`[+] Response text: ${text}`);
-
                     if (text) {
                         const data = JSON.parse(text);
                         resolve(data);
                     } else {
-                        console.log("[!] Réponse vide");
                         resolve(null);
                     }
                 } catch (e) {
-                    console.error("[!] Erreur parsing:", e);
                     resolve(null);
                 }
             }
