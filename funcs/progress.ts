@@ -54,3 +54,21 @@ export function pushGroup(group: string[]): void {
         console.error('[LOAD ERROR]', error);
     }
 }
+
+export function legitUsers(legitUsers: string[]): void {
+    try {
+        if (fs.existsSync(PROGRESS_FILE)) {
+            const data = fs.readFileSync(PROGRESS_FILE, 'utf-8');
+            const parsed = JSON.parse(data) as ProgressData;
+
+            let array = (parsed.legitUsers || []);
+            array = array.concat(legitUsers);
+
+            parsed.legitUsers = array;
+
+            fs.writeFileSync(PROGRESS_FILE, JSON.stringify(parsed, null, 2), 'utf-8');
+        }
+    } catch (error) {
+        console.error('[LOAD ERROR]', error);
+    }
+}

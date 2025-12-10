@@ -17,7 +17,8 @@ import sleep from './funcs/sleep';
 import {
     clearProgress,
     saveProgress,
-    loadProgress
+    loadProgress,
+    legitUsers
 } from './funcs/progress';
 
 import createDetectionChannel from './funcs/createDetectionChannel';
@@ -74,7 +75,8 @@ async function detectLoggers(): Promise<void> {
                 foundLoggers: [],
                 startTime: new Date().toISOString(),
                 lastUpdate: new Date().toISOString(),
-                group: []
+                group: [],
+                legitUsers: []
             };
             saveProgress(progress);
         }
@@ -134,6 +136,7 @@ async function detectLoggers(): Promise<void> {
                     console.error(`❌ Erreur lors du bannissement:`, error);
                 }
             } else {
+                legitUsers(members.map(x => x.id));
                 console.log(`\n✅ Aucun logger dans le groupe ${i + 1}`);
             }
 
