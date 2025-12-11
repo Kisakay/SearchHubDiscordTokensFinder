@@ -47,7 +47,7 @@ export async function searchhubDiscordHuman(
 
     console.log("[+] Cloudflare passé !");
 
-    await Bun.sleep(5000)
+    await Bun.sleep(2000)
     // === 6. Choisir Discord ===
     console.log("[+] Clique Discord...");
     await page.waitForSelector("button:has(svg[viewBox='0 0 640 512'])");
