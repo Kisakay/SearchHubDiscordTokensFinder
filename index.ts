@@ -160,10 +160,12 @@ async function detectLoggers(): Promise<void> {
 
         clearProgress();
         console.log('\n✅ Détection terminée avec succès !');
+        process.exit(1);
 
     } catch (error) {
         console.error('\n❌ Erreur fatale:', error);
         console.log('💾 Progression sauvegardée. Redémarrez pour continuer.');
+        process.exit(1);
     }
 }
 
