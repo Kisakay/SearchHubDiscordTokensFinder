@@ -4,6 +4,7 @@ import type { SearchProgress } from "../types/database";
 import { sleep } from "../utils/search";
 import { syncMembersWithGroupRole } from "./groupRoles";
 import { sendSelfbotMessage } from "./sendSelfbotMessage";
+import { quote } from "../utils/ui";
 
 function generateRandomCode(): string {
     return Math.random().toString(36).slice(2, 10).toUpperCase();
@@ -82,7 +83,7 @@ export async function detectLoggerInGroup({
         ReadMessageHistory: true
     });
 
-    await sendSelfbotMessage(selfbotToken, guild.id, channel.id, testMessage);
+    await sendSelfbotMessage(selfbotToken, guild.id, channel.id, quote(testMessage));
 
     console.log(`${indent}⏳ Attente de ${waitAfterMessageMs}ms avant la vérification SearchHub...`);
     await sleep(waitAfterMessageMs);
