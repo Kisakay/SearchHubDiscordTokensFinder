@@ -13,7 +13,7 @@ function uniqueIds(ids: string[]): string[] {
     return [...new Set(ids.filter(Boolean))];
 }
 
-export const GROUP_ROLE_NAME_PREFIX = 'SearchHub Group ';
+export const GROUP_ROLE_NAME_PREFIX = 'Batch #';
 
 export function getParentGroupId(groupId: string): string | null {
     const separatorIndex = groupId.lastIndexOf('_');

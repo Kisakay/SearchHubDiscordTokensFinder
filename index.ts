@@ -52,7 +52,7 @@ async function initializeMainGroups(
         await syncMembersWithGroupRole(
             guild,
             progress,
-            `G${index + 1}`,
+            `${index + 1}`,
             mainChunks[index]!,
             0
         );
@@ -224,7 +224,7 @@ async function detectLoggers(): Promise<void> {
                 guild,
                 channel,
                 mainChunks[i]!,
-                `G${i + 1}`,
+                `${i + 1}`,
                 progress,
                 selfbotUserId,
                 0
