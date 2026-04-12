@@ -68,41 +68,61 @@ export async function syncMembersWithGroupRole(
     indent: string = ""
 ): Promise<{ group: ProgressRoleGroup; role: Role }> {
     const memberIds = members.map(member => member.id);
+    const knownGroupRoleIds = new Set(
+        progress.roleGroups
+            .map(group => group.roleId)
+            .filter((roleId): roleId is string => Boolean(roleId))
+    );
 
     assignMembersToGroup(progress, groupId, memberIds, depth);
 
     const { role } = await ensureGroupRole(guild, progress, groupId, depth);
 
     if (members.length > 0) {
-        console.log(`${indent}👥 Synchronisation du rôle ${role.name} sur ${members.length} membre(s)...`);
+        console.log(`${indent}👥 Vérification du rôle ${role.name} sur ${members.length} membre(s)...`);
     }
+
+    let addedRolesCount = 0;
+    let removedRolesCount = 0;
+    let unchangedMembersCount = 0;
 
     for (const member of members) {
         const rolesToRemove = member.roles.cache
             .filter(existingRole =>
                 existingRole.id !== role.id
                 && (
-                    progress.roleGroups.some(group => group.roleId === existingRole.id)
+                    knownGroupRoleIds.has(existingRole.id)
                     || existingRole.name.startsWith(GROUP_ROLE_NAME_PREFIX)
                 )
             )
             .map(existingRole => existingRole);
+        const hadTargetRole = member.roles.cache.has(role.id);
 
         if (rolesToRemove.length > 0) {
             try {
                 await member.roles.remove(rolesToRemove);
+                removedRolesCount += rolesToRemove.length;
             } catch {
                 console.error(`${indent}⚠️  Erreur suppression anciens rôles à ${member.user.tag}`);
             }
         }
 
-        if (!member.roles.cache.has(role.id)) {
+        if (!hadTargetRole) {
             try {
                 await member.roles.add(role);
+                addedRolesCount += 1;
             } catch {
                 console.error(`${indent}⚠️  Erreur ajout rôle à ${member.user.tag}`);
             }
+        } else if (rolesToRemove.length === 0) {
+            unchangedMembersCount += 1;
         }
+    }
+
+    if (members.length > 0) {
+        console.log(
+            `${indent}📊 Vérification terminée: ${addedRolesCount} ajout(s), ${removedRolesCount} retrait(s), ${unchangedMembersCount} inchangé(s)`
+        );
     }
 
     const group = assignMembersToGroup(progress, groupId, memberIds, depth);
