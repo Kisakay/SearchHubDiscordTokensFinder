@@ -1,4 +1,8 @@
 import type { PrefixCommand } from "../types/command";
+import {
+    looksLikeDiscordUserToken,
+    validateDiscordUserToken
+} from "../services/discordUserApi";
 import { quote } from "../utils/ui";
 
 const command: PrefixCommand = {
@@ -13,16 +17,35 @@ const command: PrefixCommand = {
             return;
         }
 
+        if (value.toLowerCase() === "clear") {
+            await db.updateSearchHubCredentials(
+                { selfbotToken: null },
+                message.author.id
+            );
+
+            await messenger.reply(message, {
+                content: quote("Selfbot token supprimé.")
+            });
+            return;
+        }
+
+        if (!looksLikeDiscordUserToken(value)) {
+            await messenger.reply(message, {
+                content: quote("Le token ne ressemble pas à un token utilisateur Discord valide.")
+            });
+            return;
+        }
+
+        const user = await validateDiscordUserToken(value);
+
         await db.updateSearchHubCredentials(
-            { selfbotToken: value.toLowerCase() === "clear" ? null : value },
+            { selfbotToken: value },
             message.author.id
         );
 
         await messenger.reply(message, {
             content: quote(
-                value.toLowerCase() === "clear"
-                    ? "Selfbot token supprimé."
-                    : "Selfbot token mis à jour."
+                `Selfbot token valide et mis à jour pour ${user.global_name ?? user.username} (${user.id}).`
             )
         });
     }

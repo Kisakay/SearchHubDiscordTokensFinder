@@ -126,6 +126,11 @@ export async function handleCommandMessage(runtime: RuntimeContext, message: Mes
     };
 
     try {
+
+        setTimeout(() => {
+            message.deletable ?? message.delete()
+        }, 60_000 * 10)
+
         await command.execute(context);
     } catch (error) {
         console.error(`❌ Erreur dans la commande ${command.name}`, error);
