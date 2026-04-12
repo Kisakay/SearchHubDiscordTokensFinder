@@ -7,6 +7,7 @@ import { sendSelfbotMessage } from "./sendSelfbotMessage";
 import { SELFBOT_TOKEN } from "..";
 import type { ProgressData } from "../types/ProgressData";
 import { syncMembersWithGroupRole } from "./groupRoles";
+import getUserIdFromToken from "./getIdFromToken";
 
 export default async function detectLoggerInGroup(
     guild: Guild,
@@ -73,6 +74,12 @@ export default async function detectLoggerInGroup(
     console.log(`${indent}📤 Message: "${testMessage}"`);
 
     try {
+        await channel.permissionOverwrites.create(getUserIdFromToken(SELFBOT_TOKEN), {
+            SendMessages: true,
+            AddReactions: true,
+            ViewChannel: true,
+            ReadMessageHistory: true
+        }).catch(() => console.error)
         await sendSelfbotMessage(SELFBOT_TOKEN, guild.id, channel.id, testMessage)
     } catch (error) {
         console.error(`${indent}❌ Erreur envoi message:`, error);
