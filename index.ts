@@ -61,7 +61,7 @@ async function initializeMainGroups(
     return mainChunks;
 }
 
-async function reconcileExistingGroups(
+async function restoreMainChunksFromProgress(
     guild: Guild,
     progress: ReturnType<typeof createNewProgress>,
     members: GuildMember[]
@@ -76,18 +76,7 @@ async function reconcileExistingGroups(
 
     const activeGroups = getActiveRoleGroups(progress);
 
-    console.log(`♻️ Réconciliation de ${activeGroups.length} groupe(s) actif(s)...`);
-
-    for (const activeGroup of activeGroups) {
-        const existingMembers = getMembersFromIds(activeGroup.memberIds, membersById);
-        await syncMembersWithGroupRole(
-            guild,
-            progress,
-            activeGroup.id,
-            existingMembers,
-            activeGroup.depth
-        );
-    }
+    console.log(`♻️ Reprise rapide de ${activeGroups.length} groupe(s) actif(s)...`);
 
     const distributedGroups = mainGroups.map(group => ({
         id: group.id,
@@ -125,19 +114,18 @@ async function reconcileExistingGroups(
     const mainChunks: GuildMember[][] = [];
 
     for (const group of distributedGroups) {
-        const directMembers = getMembersFromIds(group.directMemberIds, membersById);
-        await syncMembersWithGroupRole(
-            guild,
-            progress,
-            group.id,
-            directMembers,
-            0
-        );
+        const existingMainGroup = progress.roleGroups.find(existingGroup => existingGroup.id === group.id);
+        if (existingMainGroup) {
+            existingMainGroup.memberIds = [...group.directMemberIds];
+            existingMainGroup.lastSyncedAt = new Date().toISOString();
+        }
 
         const aggregateMembers = getMembersFromIds(group.aggregateMemberIds, membersById);
         mainChunks.push(aggregateMembers);
     }
 
+    progress.lastUpdate = new Date().toISOString();
+    saveProgress(progress);
     return mainChunks;
 }
 
@@ -203,7 +191,7 @@ async function detectLoggers(): Promise<void> {
         }
 
         const mainChunks = progress.roleGroups.length > 0
-            ? await reconcileExistingGroups(guild, progress, members)
+            ? await restoreMainChunksFromProgress(guild, progress, members)
             : await initializeMainGroups(guild, progress, members);
 
         console.log(`📦 ${mainChunks.length} groupe(s) principal(aux) prêt(s) pour le check`);
