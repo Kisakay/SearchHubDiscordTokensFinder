@@ -37,6 +37,15 @@ export function getRootGroupId(groupId: string): string {
     return groupId.slice(0, separatorIndex);
 }
 
+export function isSameOrAncestorGroup(candidateGroupId: string, groupId: string): boolean {
+    return candidateGroupId === groupId || groupId.startsWith(`${candidateGroupId}_`);
+}
+
+export function areGroupsCompatible(firstGroupId: string, secondGroupId: string): boolean {
+    return isSameOrAncestorGroup(firstGroupId, secondGroupId)
+        || isSameOrAncestorGroup(secondGroupId, firstGroupId);
+}
+
 function normalizeRoleGroup(group: Partial<ProgressRoleGroup>, index: number): ProgressRoleGroup {
     const now = new Date().toISOString();
     const fallbackId = group.id ?? `LEGACY_${index + 1}`;
@@ -143,6 +152,10 @@ export function assignMembersToGroup(
 
     progress.roleGroups = progress.roleGroups.map(group => {
         if (group.id === groupId) {
+            return group;
+        }
+
+        if (areGroupsCompatible(group.id, groupId)) {
             return group;
         }
 

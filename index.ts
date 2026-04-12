@@ -116,7 +116,7 @@ async function restoreMainChunksFromProgress(
     for (const group of distributedGroups) {
         const existingMainGroup = progress.roleGroups.find(existingGroup => existingGroup.id === group.id);
         if (existingMainGroup) {
-            existingMainGroup.memberIds = [...group.directMemberIds];
+            existingMainGroup.memberIds = [...group.aggregateMemberIds];
             existingMainGroup.lastSyncedAt = new Date().toISOString();
         }
 

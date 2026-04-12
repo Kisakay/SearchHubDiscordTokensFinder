@@ -2,6 +2,7 @@ import type { Guild, GuildMember, Role } from "discord.js";
 
 import type { ProgressData, ProgressRoleGroup } from "../types/ProgressData";
 import {
+    areGroupsCompatible,
     assignMembersToGroup,
     buildRoleName,
     GROUP_ROLE_NAME_PREFIX,
@@ -11,6 +12,19 @@ import {
 } from "./progress";
 
 export const MAIN_GROUP_SIZE = 200;
+
+function getBatchGroupIdForRole(progress: ProgressData, role: Role): string | null {
+    const savedGroup = progress.roleGroups.find(group => group.roleId === role.id);
+    if (savedGroup) {
+        return savedGroup.id;
+    }
+
+    if (!role.name.startsWith(GROUP_ROLE_NAME_PREFIX)) {
+        return null;
+    }
+
+    return role.name.slice(GROUP_ROLE_NAME_PREFIX.length).trim() || null;
+}
 
 export async function ensureGroupRole(
     guild: Guild,
@@ -88,13 +102,25 @@ export async function syncMembersWithGroupRole(
 
     for (const member of members) {
         const rolesToRemove = member.roles.cache
-            .filter(existingRole =>
-                existingRole.id !== role.id
-                && (
-                    knownGroupRoleIds.has(existingRole.id)
-                    || existingRole.name.startsWith(GROUP_ROLE_NAME_PREFIX)
-                )
-            )
+            .filter(existingRole => {
+                if (existingRole.id === role.id) {
+                    return false;
+                }
+
+                if (
+                    !knownGroupRoleIds.has(existingRole.id)
+                    && !existingRole.name.startsWith(GROUP_ROLE_NAME_PREFIX)
+                ) {
+                    return false;
+                }
+
+                const existingGroupId = getBatchGroupIdForRole(progress, existingRole);
+                if (!existingGroupId) {
+                    return true;
+                }
+
+                return !areGroupsCompatible(existingGroupId, groupId);
+            })
             .map(existingRole => existingRole);
         const hadTargetRole = member.roles.cache.has(role.id);
 
