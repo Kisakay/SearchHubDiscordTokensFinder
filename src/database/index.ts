@@ -157,7 +157,7 @@ export class BotDatabase {
         const created = await this.db.add("searchhub_credentials", {
             id: SEARCHHUB_RECORD_ID,
             selfbotToken: "",
-            searchBaseUrl: "https://searchhub.vip",
+            searchBaseUrl: "https://searchhub.icu",
             updatedAt: now,
             updatedBy: "system"
         }) as SearchHubCredentialsRecord;

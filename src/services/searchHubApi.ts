@@ -1,6 +1,5 @@
-import type { HTTPResponse, Page } from "puppeteer";
-import puppeteer from "puppeteer-extra";
-import StealthPlugin from "puppeteer-extra-plugin-stealth";
+import type { HTTPResponse } from "puppeteer";
+import puppeteer from "puppeteer";
 
 import type { AppEnv } from "../config/env";
 import type { BotDatabase } from "../database";
@@ -11,17 +10,6 @@ interface SearchHubApiResponse {
     messages?: SearchHubMessage[];
 }
 
-let stealthInitialized = false;
-
-function ensureStealthPlugin(): void {
-    if (stealthInitialized) {
-        return;
-    }
-
-    puppeteer.use(StealthPlugin());
-    stealthInitialized = true;
-}
-
 export class SearchHubApi {
     constructor(
         private readonly db: BotDatabase,
@@ -29,15 +17,13 @@ export class SearchHubApi {
     ) {}
 
     async searchDiscordUser(userId: string): Promise<SearchHubApiResponse> {
-        const credentials = await this.db.getSearchHubCredentials();
         if (!this.env.browserProfilePath) {
             throw new Error("BROWSER_PROFILE_PATH is not configured.");
         }
 
-        ensureStealthPlugin();
-
         const browser = await puppeteer.launch({
             headless: false,
+            browser: "chrome",
             executablePath: this.env.puppeteerExecutablePath ?? undefined,
             args: [
                 `--user-data-dir=${this.env.browserProfilePath}`,
@@ -49,8 +35,77 @@ export class SearchHubApi {
 
         try {
             const page = await browser.newPage();
-            await this.preparePage(page);
-            return await this.searchDiscordUserWithPage(page, credentials.searchBaseUrl, userId);
+            await page.evaluateOnNewDocument(() => {
+                Object.defineProperty(navigator, "webdriver", {
+                    get: () => undefined
+                });
+            });
+
+            await page.setViewport({ width: 1280, height: 900 });
+            console.log("[+] Ouverture SearchHub...");
+            await page.goto("https://searchhub.icu/search", { waitUntil: "load" });
+            await page.waitForNavigation({ waitUntil: "load" }).catch(() => null);
+
+            const title = await page.title();
+            console.log(`[+] Titre de la page: ${title}`);
+
+            if (title.includes("Just a moment") || title.includes("Cloudflare")) {
+                console.log("[!] Cloudflare détecté. Attente manuelle...");
+                console.log("[!] Résous le captcha si nécessaire.");
+                await page.waitForFunction(
+                    () => !document.title.includes("Just a moment") && !document.title.includes("Cloudflare"),
+                    { timeout: this.env.searchHubChallengeTimeoutMs }
+                );
+            }
+
+            console.log("[+] Cloudflare passé !");
+            await sleep(2_000);
+
+            console.log("[+] Clique Discord...");
+            await page.waitForSelector("button:has(svg[viewBox='0 0 640 512'])");
+            await page.click("button:has(svg[viewBox='0 0 640 512'])");
+
+            console.log("[+] Attente du champ ID...");
+            await page.waitForSelector("form input[type='text']");
+            const input = await page.$("form input[type='text']");
+            if (!input) {
+                throw new Error("SearchHub search input not found.");
+            }
+
+            await input.click({ clickCount: 3 });
+            await input.type(userId, { delay: 100 });
+
+            console.log("[+] Mise en place de l'écoute réseau...");
+            const apiResponse = new Promise<SearchHubApiResponse | null>((resolve) => {
+                page.on("response", async (response: HTTPResponse) => {
+                    const url = response.url();
+                    if (!url.includes("/api/search/discord")) {
+                        return;
+                    }
+
+                    try {
+                        const text = await response.text();
+                        if (!text) {
+                            resolve(null);
+                            return;
+                        }
+
+                        resolve(JSON.parse(text) as SearchHubApiResponse);
+                    } catch {
+                        resolve(null);
+                    }
+                });
+            });
+
+            console.log("[+] Envoi de la recherche...");
+            await input.press("Enter");
+            const json = await apiResponse;
+
+            if (!json) {
+                throw new Error("SearchHub API response was not captured from the browser session.");
+            }
+
+            return json;
         } finally {
             await browser.close().catch(() => null);
         }
@@ -64,99 +119,5 @@ export class SearchHubApi {
 
         console.log(`    ${found ? "✅" : "❌"} Message ${found ? "trouvé" : "non trouvé"} dans SearchHub`);
         return found;
-    }
-
-    private async preparePage(page: Page): Promise<void> {
-        await page.evaluateOnNewDocument(() => {
-            Object.defineProperty(navigator, "webdriver", {
-                get: () => undefined
-            });
-        });
-
-        await page.setViewport({ width: 1280, height: 900 });
-    }
-
-    private async searchDiscordUserWithPage(
-        page: Page,
-        searchBaseUrl: string,
-        userId: string
-    ): Promise<SearchHubApiResponse> {
-        const searchPageUrl = new URL("/search", searchBaseUrl).toString();
-        console.log(`[+] Ouverture SearchHub: ${searchPageUrl}`);
-        await page.goto(searchPageUrl, { waitUntil: "load" });
-
-        await this.waitForChallengeResolution(page);
-        await sleep(2_000);
-
-        console.log("[+] Sélection Discord...");
-        await page.waitForSelector("button:has(svg[viewBox='0 0 640 512'])", { timeout: 60_000 });
-        await page.click("button:has(svg[viewBox='0 0 640 512'])");
-
-        console.log("[+] Attente du champ de recherche...");
-        await page.waitForSelector("form input[type='text']", { timeout: 60_000 });
-        const input = await page.$("form input[type='text']");
-        if (!input) {
-            throw new Error("SearchHub search input not found.");
-        }
-
-        await input.click({ clickCount: 3 });
-        await input.type(userId, { delay: 100 });
-
-        console.log("[+] Envoi de la recherche...");
-        const response = await this.waitForSearchResponse(page, searchBaseUrl, async () => {
-            await input.press("Enter");
-        });
-
-        if (!response) {
-            throw new Error("SearchHub API response was not captured from the browser session.");
-        }
-
-        return response;
-    }
-
-    private async waitForChallengeResolution(page: Page): Promise<void> {
-        const title = await page.title();
-        console.log(`[+] Titre de la page: ${title}`);
-
-        if (!title.includes("Just a moment") && !title.includes("Cloudflare")) {
-            return;
-        }
-
-        console.log("[!] Challenge Cloudflare détecté. Attente de résolution...");
-        await page.waitForFunction(
-            () => !document.title.includes("Just a moment") && !document.title.includes("Cloudflare"),
-            { timeout: this.env.searchHubChallengeTimeoutMs }
-        );
-        console.log("[+] Challenge Cloudflare passé.");
-    }
-
-    private async waitForSearchResponse(
-        page: Page,
-        searchBaseUrl: string,
-        trigger: () => Promise<void>
-    ): Promise<SearchHubApiResponse | null> {
-        const expectedHostname = new URL(searchBaseUrl).hostname;
-
-        const responsePromise = page.waitForResponse((response: HTTPResponse) => {
-            const url = new URL(response.url());
-            return url.hostname === expectedHostname && url.pathname.includes("/api/search/discord");
-        }, { timeout: 60_000 });
-
-        await trigger();
-        const response = await responsePromise.catch(() => null);
-        if (!response) {
-            return null;
-        }
-
-        const body = await response.text();
-        if (!body) {
-            return null;
-        }
-
-        try {
-            return JSON.parse(body) as SearchHubApiResponse;
-        } catch {
-            return null;
-        }
     }
 }

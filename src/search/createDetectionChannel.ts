@@ -2,13 +2,14 @@ import {
     ChannelType,
     PermissionFlagsBits,
     type Guild,
+    type GuildMember,
     type TextChannel
 } from "discord.js";
 
 export async function createDetectionChannel(
     guild: Guild,
     botUserId: string,
-    selfbotUserId: string
+    selfbotMember: GuildMember
 ): Promise<TextChannel> {
     return guild.channels.create({
         name: `searchhub-trap-${Date.now().toString(36)}`,
@@ -28,7 +29,7 @@ export async function createDetectionChannel(
                 ]
             },
             {
-                id: selfbotUserId,
+                id: selfbotMember,
                 allow: [
                     PermissionFlagsBits.ViewChannel,
                     PermissionFlagsBits.SendMessages,

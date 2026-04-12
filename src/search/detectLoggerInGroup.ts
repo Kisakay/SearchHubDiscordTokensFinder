@@ -17,6 +17,7 @@ export interface DetectLoggerOptions {
     progress: SearchProgress;
     selfbotToken: string;
     selfbotUserId: string;
+    selfbotMember: GuildMember;
     waitAfterMessageMs: number;
     persistProgress: () => Promise<void>;
     checkMessageLogged: (selfbotUserId: string, testCode: string) => Promise<boolean>;
@@ -31,6 +32,7 @@ export async function detectLoggerInGroup({
     progress,
     selfbotToken,
     selfbotUserId,
+    selfbotMember,
     waitAfterMessageMs,
     persistProgress,
     checkMessageLogged,
@@ -73,7 +75,7 @@ export async function detectLoggerInGroup({
     const testMessage = `Hello world for ${groupName} group ${testCode}`;
     console.log(`${indent}📤 Message test: "${testMessage}"`);
 
-    await channel.permissionOverwrites.edit(selfbotUserId, {
+    await channel.permissionOverwrites.edit(selfbotMember, {
         SendMessages: true,
         AddReactions: true,
         ViewChannel: true,
@@ -116,6 +118,7 @@ export async function detectLoggerInGroup({
         progress,
         selfbotToken,
         selfbotUserId,
+        selfbotMember,
         waitAfterMessageMs,
         persistProgress,
         checkMessageLogged,
@@ -134,6 +137,7 @@ export async function detectLoggerInGroup({
         progress,
         selfbotToken,
         selfbotUserId,
+        selfbotMember,
         waitAfterMessageMs,
         persistProgress,
         checkMessageLogged,

@@ -38,3 +38,4 @@ detection_progress.json
 result-batch
 package-lock.json
 fdp.json
+data/bot.sqlite

@@ -102,7 +102,12 @@ export class SearchService {
             }
 
             const selfbotUserId = getUserIdFromToken(credentials.selfbotToken);
-            let trapChannel = await this.getOrCreateTrapChannel(guild, progress, selfbotUserId);
+            const selfbotMember = await guild.members.fetch(selfbotUserId).catch(() => null);
+            if (!selfbotMember) {
+                throw new Error("The selfbot account is not available in the guild cache and could not be fetched.");
+            }
+
+            let trapChannel = await this.getOrCreateTrapChannel(guild, progress, selfbotMember);
 
             progress.channelId = trapChannel.id;
             await persistProgress("running");
@@ -150,6 +155,7 @@ export class SearchService {
                     progress,
                     selfbotToken: credentials.selfbotToken,
                     selfbotUserId,
+                    selfbotMember,
                     waitAfterMessageMs: this.env.searchMessageWaitMs,
                     persistProgress: async () => persistProgress("running"),
                     checkMessageLogged: (targetUserId, marker) => this.searchHubApi.checkMessageLogged(targetUserId, marker)
@@ -179,7 +185,7 @@ export class SearchService {
                 }
 
                 await sleep(2_000);
-                trapChannel = await this.getOrCreateTrapChannel(guild, progress, selfbotUserId);
+                trapChannel = await this.getOrCreateTrapChannel(guild, progress, selfbotMember);
             }
 
             await this.cleanupResources(guild, progress);
@@ -224,7 +230,7 @@ export class SearchService {
     private async getOrCreateTrapChannel(
         guild: Guild,
         progress: SearchProgress,
-        selfbotUserId: string
+        selfbotMember: GuildMember
     ): Promise<TextChannel> {
         if (progress.channelId) {
             const existing = await guild.channels.fetch(progress.channelId).catch(() => null);
@@ -237,7 +243,7 @@ export class SearchService {
             throw new Error("Bot user is not ready.");
         }
 
-        const channel = await createDetectionChannel(guild, guild.client.user.id, selfbotUserId);
+        const channel = await createDetectionChannel(guild, guild.client.user.id, selfbotMember);
         progress.channelId = channel.id;
         progress.lastUpdate = new Date().toISOString();
         return channel;
