@@ -13,6 +13,8 @@ function uniqueIds(ids: string[]): string[] {
     return [...new Set(ids.filter(Boolean))];
 }
 
+export const GROUP_ROLE_NAME_PREFIX = 'SearchHub Group ';
+
 export function getParentGroupId(groupId: string): string | null {
     const separatorIndex = groupId.lastIndexOf('_');
     if (separatorIndex === -1) {
@@ -23,7 +25,16 @@ export function getParentGroupId(groupId: string): string | null {
 }
 
 export function buildRoleName(groupId: string): string {
-    return `SearchHub Group ${groupId}`.slice(0, 100);
+    return `${GROUP_ROLE_NAME_PREFIX}${groupId}`.slice(0, 100);
+}
+
+export function getRootGroupId(groupId: string): string {
+    const separatorIndex = groupId.indexOf('_');
+    if (separatorIndex === -1) {
+        return groupId;
+    }
+
+    return groupId.slice(0, separatorIndex);
 }
 
 function normalizeRoleGroup(group: Partial<ProgressRoleGroup>, index: number): ProgressRoleGroup {
@@ -106,6 +117,54 @@ export function getMainRoleGroups(progress: ProgressData): ProgressRoleGroup[] {
     return progress.roleGroups
         .filter(group => group.depth === 0)
         .sort((first, second) => first.id.localeCompare(second.id, undefined, { numeric: true }));
+}
+
+export function getActiveRoleGroups(progress: ProgressData): ProgressRoleGroup[] {
+    return progress.roleGroups
+        .filter(group => group.memberIds.length > 0)
+        .sort((first, second) => {
+            if (first.depth !== second.depth) {
+                return second.depth - first.depth;
+            }
+
+            return first.id.localeCompare(second.id, undefined, { numeric: true });
+        });
+}
+
+export function assignMembersToGroup(
+    progress: ProgressData,
+    groupId: string,
+    memberIds: string[],
+    depth: number
+): ProgressRoleGroup {
+    const nextMemberIds = uniqueIds(memberIds);
+    const removedMembers = new Set(nextMemberIds);
+    const now = new Date().toISOString();
+
+    progress.roleGroups = progress.roleGroups.map(group => {
+        if (group.id === groupId) {
+            return group;
+        }
+
+        const filteredMemberIds = group.memberIds.filter(memberId => !removedMembers.has(memberId));
+        if (filteredMemberIds.length === group.memberIds.length) {
+            return group;
+        }
+
+        return {
+            ...group,
+            memberIds: filteredMemberIds,
+            lastSyncedAt: now
+        };
+    });
+
+    return upsertRoleGroup(progress, {
+        id: groupId,
+        depth,
+        parentId: getParentGroupId(groupId),
+        roleName: buildRoleName(groupId),
+        memberIds: nextMemberIds
+    });
 }
 
 export function upsertRoleGroup(

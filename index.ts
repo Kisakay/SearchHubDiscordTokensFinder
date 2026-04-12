@@ -15,9 +15,11 @@ import createChunks from './funcs/createChunks';
 import sleep from './funcs/sleep';
 
 import {
+    getActiveRoleGroups,
     clearProgress,
     createNewProgress,
     getMainRoleGroups,
+    getRootGroupId,
     markFoundLogger,
     markLegitUsers,
     saveProgress,
@@ -72,52 +74,68 @@ async function reconcileExistingGroups(
         return initializeMainGroups(guild, progress, members);
     }
 
-    const storedGroups = [...progress.roleGroups].sort((first, second) =>
-        first.id.localeCompare(second.id, undefined, { numeric: true })
-    );
+    const activeGroups = getActiveRoleGroups(progress);
 
-    console.log(`♻️ Réconciliation de ${storedGroups.length} groupe(s) persistant(s)...`);
+    console.log(`♻️ Réconciliation de ${activeGroups.length} groupe(s) actif(s)...`);
 
-    for (const storedGroup of storedGroups) {
-        const existingMembers = getMembersFromIds(storedGroup.memberIds, membersById);
+    for (const activeGroup of activeGroups) {
+        const existingMembers = getMembersFromIds(activeGroup.memberIds, membersById);
         await syncMembersWithGroupRole(
             guild,
             progress,
-            storedGroup.id,
+            activeGroup.id,
             existingMembers,
-            storedGroup.depth
+            activeGroup.depth
         );
     }
 
     const distributedGroups = mainGroups.map(group => ({
         id: group.id,
-        memberIds: [...group.memberIds]
+        directMemberIds: [...group.memberIds],
+        aggregateMemberIds: [...group.memberIds]
     }));
 
-    const assignedMembers = new Set(distributedGroups.flatMap(group => group.memberIds));
+    for (const activeGroup of activeGroups) {
+        const rootGroupId = getRootGroupId(activeGroup.id);
+        const distributedGroup = distributedGroups.find(group => group.id === rootGroupId);
+        if (!distributedGroup || activeGroup.id === rootGroupId) {
+            continue;
+        }
+
+        for (const memberId of activeGroup.memberIds) {
+            if (!distributedGroup.aggregateMemberIds.includes(memberId)) {
+                distributedGroup.aggregateMemberIds.push(memberId);
+            }
+        }
+    }
+
+    const assignedMembers = new Set(distributedGroups.flatMap(group => group.aggregateMemberIds));
     const unassignedMembers = members.filter(member => !assignedMembers.has(member.id));
 
     if (unassignedMembers.length > 0) {
         console.log(`➕ ${unassignedMembers.length} membre(s) sans groupe trouvé(s), répartition en cours...`);
 
         for (const member of unassignedMembers) {
-            distributedGroups.sort((first, second) => first.memberIds.length - second.memberIds.length);
-            distributedGroups[0]!.memberIds.push(member.id);
+            distributedGroups.sort((first, second) => first.aggregateMemberIds.length - second.aggregateMemberIds.length);
+            distributedGroups[0]!.directMemberIds.push(member.id);
+            distributedGroups[0]!.aggregateMemberIds.push(member.id);
         }
     }
 
     const mainChunks: GuildMember[][] = [];
 
     for (const group of distributedGroups) {
-        const groupMembers = getMembersFromIds(group.memberIds, membersById);
+        const directMembers = getMembersFromIds(group.directMemberIds, membersById);
         await syncMembersWithGroupRole(
             guild,
             progress,
             group.id,
-            groupMembers,
+            directMembers,
             0
         );
-        mainChunks.push(groupMembers);
+
+        const aggregateMembers = getMembersFromIds(group.aggregateMemberIds, membersById);
+        mainChunks.push(aggregateMembers);
     }
 
     return mainChunks;

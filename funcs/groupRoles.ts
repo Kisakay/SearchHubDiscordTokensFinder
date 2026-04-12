@@ -2,7 +2,9 @@ import type { Guild, GuildMember, Role } from "discord.js";
 
 import type { ProgressData, ProgressRoleGroup } from "../types/ProgressData";
 import {
+    assignMembersToGroup,
     buildRoleName,
+    GROUP_ROLE_NAME_PREFIX,
     getParentGroupId,
     saveProgress,
     upsertRoleGroup
@@ -67,13 +69,7 @@ export async function syncMembersWithGroupRole(
 ): Promise<{ group: ProgressRoleGroup; role: Role }> {
     const memberIds = members.map(member => member.id);
 
-    upsertRoleGroup(progress, {
-        id: groupId,
-        depth,
-        parentId: getParentGroupId(groupId),
-        roleName: buildRoleName(groupId),
-        memberIds
-    });
+    assignMembersToGroup(progress, groupId, memberIds, depth);
 
     const { role } = await ensureGroupRole(guild, progress, groupId, depth);
 
@@ -82,24 +78,41 @@ export async function syncMembersWithGroupRole(
     }
 
     for (const member of members) {
-        if (member.roles.cache.has(role.id)) {
-            continue;
+        const rolesToRemove = member.roles.cache
+            .filter(existingRole =>
+                existingRole.id !== role.id
+                && (
+                    progress.roleGroups.some(group => group.roleId === existingRole.id)
+                    || existingRole.name.startsWith(GROUP_ROLE_NAME_PREFIX)
+                )
+            )
+            .map(existingRole => existingRole);
+
+        if (rolesToRemove.length > 0) {
+            try {
+                await member.roles.remove(rolesToRemove);
+            } catch {
+                console.error(`${indent}⚠️  Erreur suppression anciens rôles à ${member.user.tag}`);
+            }
         }
 
-        try {
-            await member.roles.add(role);
-        } catch {
-            console.error(`${indent}⚠️  Erreur ajout rôle à ${member.user.tag}`);
+        if (!member.roles.cache.has(role.id)) {
+            try {
+                await member.roles.add(role);
+            } catch {
+                console.error(`${indent}⚠️  Erreur ajout rôle à ${member.user.tag}`);
+            }
         }
     }
 
-    const group = upsertRoleGroup(progress, {
+    const group = assignMembersToGroup(progress, groupId, memberIds, depth);
+    upsertRoleGroup(progress, {
         id: groupId,
         depth,
         parentId: getParentGroupId(groupId),
         roleId: role.id,
         roleName: role.name,
-        memberIds
+        memberIds: group.memberIds
     });
 
     saveProgress(progress);
