@@ -59,22 +59,17 @@ Très simple, voici une explication :
 
 Bon, pour vous battre contre eux, va falloir les engraisser un peu. Il va vous falloir l’accès à leur service pour avoir accès à leur API pour déduire le token sur votre serveur. Je vous laisse trouver comment faire pour payer !
 
-## Étape numéro 2 — récupérer vos cookies de session sur le site de SearchHub
+## Étape numéro 2 — préparer un vrai profil navigateur pour SearchHub
 
 ### Regarder la vidéo: https://files.catbox.moe/w2qk5s.mp4
 
-<!-- Sur Firefox :
+Le bot utilise désormais un vrai navigateur avec profil persistant pour passer le challenge Cloudflare. Il faut donc:
 
-Exemple :
-![img tip2](./img/tip3.png)
+* se connecter à SearchHub dans un profil Chrome dédié
+* réutiliser ce profil via `BROWSER_PROFILE_PATH`
+* éventuellement définir `PUPPETEER_EXECUTABLE_PATH` si Chrome n’est pas détecté automatiquement
 
-https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/?utm_campaign=external-cookie-editor.com
-
-Ensuite, avec vos cookies dans le presse-papier, créez un fichier appelé `cookies.txt` dans la racine du dossier.
- -->
- <!-- j'ai commenter ce code car je me suis rendue compte après teste que cela ne marche pas. il faut récuperer le cookie challenge de cloudflare
- pour récuperer ce cookie, faut faire une requête API propre -->
-Tel que :
+Exemple de profil :
 
 ![img tip2](./img/tip4.png)
 
@@ -85,9 +80,15 @@ Renommer `.env.example` en `.env`.
 Dans le .env :
 
 ```env
-GUILD_ID="ID DU SERVEUR"
 TOKEN="TOKEN DU BOT"
-SELFBOT_TOKEN="TOKEN DE VOTRE COMPTE DISCORD"
+DEFAULT_PREFIX="!"
+BOT_OWNERS="123456789012345678"
+DATABASE_PATH="./data/bot.sqlite"
+SEARCH_GROUP_SIZE="200"
+SEARCH_MESSAGE_WAIT_MS="10000"
+SEARCHHUB_CHALLENGE_TIMEOUT_MS="120000"
+BROWSER_PROFILE_PATH="/chemin/vers/profil/chrome"
+PUPPETEER_EXECUTABLE_PATH="/usr/bin/google-chrome-stable"
 ```
 
 * Copier l’identifiant de votre serveur
@@ -96,7 +97,7 @@ SELFBOT_TOKEN="TOKEN DE VOTRE COMPTE DISCORD"
 
 * Récupérer le token d’un bot — ALLEZ VOIR [CETTE DOCUMENTATION](https://docs.ihorizon.org/token-setup/create-token/)
 
-* Récupérer le token de votre compte Discord — [CETTE DOCUMENTATION](https://gist.github.com/MarvNC/e601f3603df22f36ebd3102c501116c6)
+* Le token du compte utilisateur utilisé pour le test SearchHub se configure ensuite via la commande préfixée du bot
 
 Il est nécessaire d’avoir du bon sens, et de savoir utiliser un peu un ordinateur avant de faire ceci.
 

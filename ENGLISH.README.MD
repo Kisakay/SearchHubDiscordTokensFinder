@@ -57,24 +57,19 @@ Very simple — here’s an explanation:
 
 Well, to fight them, you’re going to have to fatten them up a bit. You will need access to their service to get their API and deduce the token inside your server. I’ll let you figure out how to pay!
 
-## Step 2 — retrieve your session cookies from the SearchHub website
+## Step 2 — prepare a real browser profile for SearchHub
 
 ### Watch the video: https://files.catbox.moe/w2qk5s.mp4
 
-<!-- On Firefox:
+The bot now relies on a real browser session with a persistent Chrome profile to pass the Cloudflare challenge. You therefore need to:
 
-Example:
-![img tip2](./img/tip3.png)
+* log into SearchHub inside a dedicated Chrome profile
+* reuse that profile through `BROWSER_PROFILE_PATH`
+* optionally define `PUPPETEER_EXECUTABLE_PATH` if Chrome is not detected automatically
 
-https://addons.mozilla.org/en-US/firefox/addon/cookie-editor/?utm_campaign=external-cookie-editor.com
+Example profile:
 
-Then, with your cookies in the clipboard, create a file named `cookies.txt` at the root of the folder.
-
-Like this:
-
-![img tip2](./img/tip4.png) -->
- <!-- j'ai commenter ce code car je me suis rendue compte après teste que cela ne marche pas. il faut récuperer le cookie challenge de cloudflare
- pour récuperer ce cookie, faut faire une requête API propre -->
+![img tip2](./img/tip4.png)
 
 ## Step 3 — start configuring the environment file
 
@@ -83,9 +78,15 @@ Rename `.env.example` to `.env`.
 Inside the `.env`:
 
 ```env
-GUILD_ID="SERVER ID"
 TOKEN="BOT TOKEN"
-SELFBOT_TOKEN="YOUR DISCORD ACCOUNT TOKEN"
+DEFAULT_PREFIX="!"
+BOT_OWNERS="123456789012345678"
+DATABASE_PATH="./data/bot.sqlite"
+SEARCH_GROUP_SIZE="200"
+SEARCH_MESSAGE_WAIT_MS="10000"
+SEARCHHUB_CHALLENGE_TIMEOUT_MS="120000"
+BROWSER_PROFILE_PATH="/path/to/chrome/profile"
+PUPPETEER_EXECUTABLE_PATH="/usr/bin/google-chrome-stable"
 ```
 
 * Copy your server’s ID
@@ -94,7 +95,7 @@ SELFBOT_TOKEN="YOUR DISCORD ACCOUNT TOKEN"
 
 * Get the bot token — CHECK [THIS DOCUMENTATION](https://docs.ihorizon.org/token-setup/create-token/)
 
-* Get your Discord account token — [THIS DOCUMENTATION](https://gist.github.com/MarvNC/e601f3603df22f36ebd3102c501116c6)
+* The user account token used for the SearchHub test is then configured through the bot prefix command
 
 You need common sense and basic computer usage knowledge before doing this.
 
