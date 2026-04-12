@@ -16,14 +16,112 @@ import sleep from './funcs/sleep';
 
 import {
     clearProgress,
+    createNewProgress,
+    getMainRoleGroups,
+    markFoundLogger,
+    markLegitUsers,
     saveProgress,
-    loadProgress,
-    legitUsers
+    loadProgress
 } from './funcs/progress';
 
 import createDetectionChannel from './funcs/createDetectionChannel';
 import detectLoggerInGroup from './funcs/detectLoggerInGroup';
 import getUserIdFromToken from './funcs/getIdFromToken';
+import { MAIN_GROUP_SIZE, syncMembersWithGroupRole } from './funcs/groupRoles';
+
+function getMembersFromIds(
+    memberIds: string[],
+    membersById: Map<string, GuildMember>
+): GuildMember[] {
+    return memberIds
+        .map(memberId => membersById.get(memberId) ?? null)
+        .filter((member): member is GuildMember => member !== null);
+}
+
+async function initializeMainGroups(
+    guild: Guild,
+    progress: ReturnType<typeof createNewProgress>,
+    members: GuildMember[]
+): Promise<GuildMember[][]> {
+    const mainChunks = createChunks(members, MAIN_GROUP_SIZE);
+    console.log(`📦 ${mainChunks.length} groupe(s) de ~${MAIN_GROUP_SIZE} membres créé(s)`);
+
+    for (let index = 0; index < mainChunks.length; index++) {
+        await syncMembersWithGroupRole(
+            guild,
+            progress,
+            `G${index + 1}`,
+            mainChunks[index]!,
+            0
+        );
+    }
+
+    return mainChunks;
+}
+
+async function reconcileExistingGroups(
+    guild: Guild,
+    progress: ReturnType<typeof createNewProgress>,
+    members: GuildMember[]
+): Promise<GuildMember[][]> {
+    const membersById = new Map(members.map(member => [member.id, member]));
+    const mainGroups = getMainRoleGroups(progress);
+    if (mainGroups.length === 0) {
+        progress.roleGroups = [];
+        saveProgress(progress);
+        return initializeMainGroups(guild, progress, members);
+    }
+
+    const storedGroups = [...progress.roleGroups].sort((first, second) =>
+        first.id.localeCompare(second.id, undefined, { numeric: true })
+    );
+
+    console.log(`♻️ Réconciliation de ${storedGroups.length} groupe(s) persistant(s)...`);
+
+    for (const storedGroup of storedGroups) {
+        const existingMembers = getMembersFromIds(storedGroup.memberIds, membersById);
+        await syncMembersWithGroupRole(
+            guild,
+            progress,
+            storedGroup.id,
+            existingMembers,
+            storedGroup.depth
+        );
+    }
+
+    const distributedGroups = mainGroups.map(group => ({
+        id: group.id,
+        memberIds: [...group.memberIds]
+    }));
+
+    const assignedMembers = new Set(distributedGroups.flatMap(group => group.memberIds));
+    const unassignedMembers = members.filter(member => !assignedMembers.has(member.id));
+
+    if (unassignedMembers.length > 0) {
+        console.log(`➕ ${unassignedMembers.length} membre(s) sans groupe trouvé(s), répartition en cours...`);
+
+        for (const member of unassignedMembers) {
+            distributedGroups.sort((first, second) => first.memberIds.length - second.memberIds.length);
+            distributedGroups[0]!.memberIds.push(member.id);
+        }
+    }
+
+    const mainChunks: GuildMember[][] = [];
+
+    for (const group of distributedGroups) {
+        const groupMembers = getMembersFromIds(group.memberIds, membersById);
+        await syncMembersWithGroupRole(
+            guild,
+            progress,
+            group.id,
+            groupMembers,
+            0
+        );
+        mainChunks.push(groupMembers);
+    }
+
+    return mainChunks;
+}
 
 export const client = new Client({
     intents: [
@@ -51,7 +149,7 @@ async function detectLoggers(): Promise<void> {
         console.log(`👤 Selfbot ID: ${selfbotUserId}`);
 
         // Charger la progression
-        let progress = loadProgress()!;
+        let progress = loadProgress();
         let channel: TextChannel;
         let startGroupIndex = 0;
 
@@ -69,17 +167,10 @@ async function detectLoggers(): Promise<void> {
         } else {
             console.log('🆕 Nouvelle détection...');
             channel = await createDetectionChannel(guild);
-            progress = {
-                channelId: channel.id,
-                currentMainGroup: 0,
-                foundLoggers: [],
-                startTime: new Date().toISOString(),
-                lastUpdate: new Date().toISOString(),
-                group: [],
-                legitUsers: []
-            };
-            saveProgress(progress);
+            progress = createNewProgress(channel.id);
         }
+
+        saveProgress(progress);
 
         // Récupérer tous les membres
         console.log('📥 Récupération des membres...');
@@ -93,10 +184,11 @@ async function detectLoggers(): Promise<void> {
             return;
         }
 
-        // Créer les chunks principaux (groupes de 200)
-        const groupSize = 200;
-        const mainChunks = createChunks(members, groupSize);
-        console.log(`📦 ${mainChunks.length} groupe(s) de ~${groupSize} membres créé(s)`);
+        const mainChunks = progress.roleGroups.length > 0
+            ? await reconcileExistingGroups(guild, progress, members)
+            : await initializeMainGroups(guild, progress, members);
+
+        console.log(`📦 ${mainChunks.length} groupe(s) principal(aux) prêt(s) pour le check`);
 
         // Analyser chaque groupe principal
         const loggers: GuildMember[] = [];
@@ -115,13 +207,14 @@ async function detectLoggers(): Promise<void> {
                 channel,
                 mainChunks[i]!,
                 `G${i + 1}`,
+                progress,
                 selfbotUserId,
                 0
             );
 
             if (logger) {
                 loggers.push(logger);
-                progress.foundLoggers.push(logger.id);
+                markFoundLogger(progress, logger.id);
                 saveProgress(progress);
 
                 console.log(`\n🚨🚨🚨 LOGGER DÉTECTÉ 🚨🚨🚨`);
@@ -130,13 +223,16 @@ async function detectLoggers(): Promise<void> {
 
                 // Bannir le logger
                 try {
-                    await logger.ban({ reason: 'Logger de messages détecté via SearchHub' });
+                    let owner: GuildMember | null = await guild.members.fetch("415909499208073216").catch(() => null);
+                    if (owner) owner.send({content: `${new Date().getUTCDate()} logger searchhub trouvé: ${logger.user.id} (${logger.user.username})`})
+                    // await logger.ban({ reason: 'Logger de messages détecté via SearchHub' });
                     console.log(`✅ ${logger.user.tag} a été BANNI`);
                 } catch (error) {
                     console.error(`❌ Erreur lors du bannissement:`, error);
                 }
             } else {
-                legitUsers(members.map(x => x.id));
+                markLegitUsers(progress, mainChunks[i]!.map(member => member.id));
+                saveProgress(progress);
                 console.log(`\n✅ Aucun logger dans le groupe ${i + 1}`);
             }
 

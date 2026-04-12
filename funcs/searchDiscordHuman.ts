@@ -12,6 +12,8 @@ export async function searchhubDiscordHuman(
         args: [
             `--user-data-dir=${BROWSER_PROFILE_PATH}`,
             '--profile-directory=Default',
+              '--ozone-platform=x11',
+
         ],
         ignoreDefaultArgs: ['--enable-automation'],
     });
@@ -27,7 +29,7 @@ export async function searchhubDiscordHuman(
 
     await page.setViewport({ width: 1280, height: 900 });
     console.log("[+] Ouverture SearchHub...");
-    await page.goto("https://searchhub.vip/search", { waitUntil: "load" });
+    await page.goto("https://searchhub.icu/search", { waitUntil: "load" });
 
     await page.waitForNavigation({ waitUntil: "load" });
 

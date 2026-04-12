@@ -5,13 +5,15 @@ import generateRandomCode from "./generateRandomCode";
 import sleep from "./sleep";
 import { sendSelfbotMessage } from "./sendSelfbotMessage";
 import { SELFBOT_TOKEN } from "..";
-import { pushGroup } from "./progress";
+import type { ProgressData } from "../types/ProgressData";
+import { syncMembersWithGroupRole } from "./groupRoles";
 
 export default async function detectLoggerInGroup(
     guild: Guild,
     channel: TextChannel,
     members: GuildMember[],
     groupName: string,
+    progress: ProgressData,
     selfbotUserId: string,
     depth: number = 0
 ): Promise<GuildMember | null> {
@@ -30,31 +32,23 @@ export default async function detectLoggerInGroup(
         return members[0]!;
     }
 
-    pushGroup(members.map(x => x.id))
-
-    // Créer un rôle temporaire pour ce groupe
-    const roleName = `Test_${groupName}_${Date.now()}`;
     let role: Role;
 
     try {
-        role = await guild.roles.create({
-            name: roleName,
-            permissions: []
-        });
-        console.log(`${indent}📝 Rôle créé: ${roleName}`);
-    } catch (error) {
-        console.error(`${indent}❌ Erreur création rôle:`, error);
-        return null;
-    }
+        const syncedGroup = await syncMembersWithGroupRole(
+            guild,
+            progress,
+            groupName,
+            members,
+            depth,
+            indent
+        );
 
-    // Assigner le rôle à tous les membres du groupe
-    console.log(`${indent}👥 Attribution du rôle aux ${members.length} membres...`);
-    for (const member of members) {
-        try {
-            await member.roles.add(role);
-        } catch (error) {
-            console.error(`${indent}⚠️  Erreur ajout rôle à ${member.user.tag}`);
-        }
+        role = syncedGroup.role;
+        console.log(`${indent}📝 Rôle réutilisé: ${role.name} (${role.id})`);
+    } catch (error) {
+        console.error(`${indent}❌ Erreur création/récupération rôle:`, error);
+        return null;
     }
 
     await sleep(1000);
@@ -68,7 +62,6 @@ export default async function detectLoggerInGroup(
         console.log(`${indent}✅ Permission accordée au rôle`);
     } catch (error) {
         console.error(`${indent}❌ Erreur permission:`, error);
-        await role.delete();
         return null;
     }
 
@@ -83,7 +76,6 @@ export default async function detectLoggerInGroup(
         await sendSelfbotMessage(SELFBOT_TOKEN, guild.id, channel.id, testMessage)
     } catch (error) {
         console.error(`${indent}❌ Erreur envoi message:`, error);
-        await role.delete();
         return null;
     }
 
@@ -94,7 +86,8 @@ export default async function detectLoggerInGroup(
     // Retirer la permission
     try {
         await channel.permissionOverwrites.edit(role, {
-            ViewChannel: false
+            ViewChannel: false,
+            ReadMessageHistory: false
         });
         console.log(`${indent}🔒 Permission retirée`);
     } catch (error) {
@@ -104,16 +97,7 @@ export default async function detectLoggerInGroup(
     // Vérifier UNE SEULE FOIS sur SearchHub (compte du selfbot)
     const messageIsLogged = await checkMessageInSearchHub(selfbotUserId, testCode);
 
-    // Nettoyer le rôle
-    console.log(`${indent}🧹 Nettoyage du rôle...`);
-
-    try {
-        console.log(`${indent}🚮 Suppression du rôle...`);
-        await role.delete();
-
-    } catch (error) {
-        console.error(`${indent}⚠️  Erreur suppression rôle`);
-    }
+    console.log(`${indent}🧹 Rôle conservé pour les prochains checks`);
 
     // Si le message n'est PAS loggé, aucun logger dans ce groupe
     if (!messageIsLogged) {
@@ -136,12 +120,28 @@ export default async function detectLoggerInGroup(
 
     // Chercher dans le premier chunk
     console.log(`${indent}➡️  Test du sous-groupe A...`);
-    let logger = await detectLoggerInGroup(guild, channel, chunk1, `${groupName}_A`, selfbotUserId, depth + 1);
+    let logger = await detectLoggerInGroup(
+        guild,
+        channel,
+        chunk1,
+        `${groupName}_A`,
+        progress,
+        selfbotUserId,
+        depth + 1
+    );
     if (logger) return logger;
 
     // Chercher dans le second chunk
     console.log(`${indent}➡️  Test du sous-groupe B...`);
-    logger = await detectLoggerInGroup(guild, channel, chunk2, `${groupName}_B`, selfbotUserId, depth + 1);
+    logger = await detectLoggerInGroup(
+        guild,
+        channel,
+        chunk2,
+        `${groupName}_B`,
+        progress,
+        selfbotUserId,
+        depth + 1
+    );
     if (logger) return logger;
 
     return null;
